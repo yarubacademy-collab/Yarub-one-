@@ -1,0 +1,62 @@
+name: Unzip project
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract the archive into the repository
+        run: |
+          set -e
+
+          if [ -f package.json ]; then
+            echo "Sources are already extracted. Nothing to do."
+            exit 0
+          fi
+
+          zip="$(ls *.zip 2>/dev/null | head -1)"
+          if [ -z "$zip" ]; then
+            echo "::error::No .zip found at the repository root."
+            ls -a
+            exit 1
+          fi
+          echo "Unpacking $zip"
+
+          unzip -q -o "$zip" -d .unpack
+
+          # The archive wraps everything in one folder; its contents belong at
+          # the repository root so that apps/web sits where Vercel expects it.
+          top="$(find .unpack -mindepth 1 -maxdepth 1 -type d | head -1)"
+          [ -n "$top" ] || top=".unpack"
+
+          # GITHUB_TOKEN may not push workflow files, so the ones already here
+          # are left untouched.
+          rm -rf "$top/.github/workflows"
+
+          shopt -s dotglob
+          cp -R "$top"/. .
+          rm -rf .unpack "$zip"
+
+          echo "Result:"
+          ls
+
+      - name: Commit the extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "Extract project sources from archive"
+            git push
+          fi
