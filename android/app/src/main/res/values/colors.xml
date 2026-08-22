@@ -1,0 +1,6 @@
+<resources>
+    <!-- Matches the web design tokens so both clients look like one product. -->
+    <color name="parchment">#FAF7F0</color>
+    <color name="ink">#16181D</color>
+    <color name="amber">#C08A2E</color>
+</resources>

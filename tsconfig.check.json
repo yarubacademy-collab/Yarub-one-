@@ -1,0 +1,57 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": [
+      "node"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@yarub/shared": [
+        "packages/shared/src/index.ts"
+      ],
+      "@yarub/config": [
+        "packages/config/src/index.ts"
+      ],
+      "@yarub/providers": [
+        "packages/providers/src/index.ts"
+      ],
+      "@yarub/ai-core": [
+        "packages/ai-core/src/index.ts"
+      ],
+      "@yarub/sandbox": [
+        "packages/sandbox/src/index.ts"
+      ],
+      "@yarub/storage": [
+        "packages/storage/src/index.ts"
+      ],
+      "@yarub/db": [
+        "packages/db/src/index.ts"
+      ],
+      "@yarub/billing": [
+        "packages/billing/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "packages/ai-core/src/**/*.ts",
+    "packages/billing/src/**/*.ts",
+    "packages/config/src/**/*.ts",
+    "packages/db/src/**/*.ts",
+    "packages/providers/src/bootstrap.ts",
+    "packages/providers/src/contracts/**/*.ts",
+    "packages/providers/src/image/**/*.ts",
+    "packages/providers/src/provider-config.ts",
+    "packages/providers/src/registry.ts",
+    "packages/providers/src/speech/**/*.ts",
+    "packages/providers/src/text/**/*.ts",
+    "packages/providers/src/video/**/*.ts",
+    "packages/sandbox/src/**/*.ts",
+    "packages/shared/src/**/*.ts",
+    "packages/storage/src/mime.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "**/node_modules"
+  ]
+}

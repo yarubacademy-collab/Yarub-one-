@@ -1,0 +1,9 @@
+# Copy to local.properties. Never commit this file.
+sdk.dir=/path/to/Android/sdk
+
+# Release signing. Absent values make the release build fail rather than
+# produce an unsigned artifact.
+YARUB_KEYSTORE_PATH=/path/to/yarub-release.jks
+YARUB_KEYSTORE_PASSWORD=
+YARUB_KEY_ALIAS=yarub
+YARUB_KEY_PASSWORD=

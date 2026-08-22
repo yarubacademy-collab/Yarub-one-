@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fallback launcher icon for API 24-25, which cannot read <adaptive-icon>.
+  minSdk is 24, so without this file @mipmap/ic_launcher resolves to nothing on
+  those releases. API 26+ still picks up mipmap-anydpi-v26/ic_launcher.xml.
+  Placeholder artwork, same as the adaptive icon it mirrors.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/ink" />
+    <item
+        android:drawable="@drawable/ic_launcher_foreground"
+        android:left="18dp"
+        android:top="18dp"
+        android:right="18dp"
+        android:bottom="18dp" />
+</layer-list>

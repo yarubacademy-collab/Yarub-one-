@@ -1,0 +1,127 @@
+{
+  "brand": {
+    "name": "یعرب ون",
+    "tagline": "ذہانت اور تخلیق کا پلیٹ فارم"
+  },
+  "nav": {
+    "create": "تخلیق",
+    "chat": "گفتگو",
+    "image": "تصاویر",
+    "video": "ویڈیو",
+    "education": "تعلیم",
+    "website": "ویب سائٹ",
+    "game": "گیم",
+    "visual": "ڈیزائن",
+    "documents": "دستاویزات",
+    "projects": "پروجیکٹس",
+    "settings": "ترتیبات",
+    "pricing": "سبسکرپشن",
+    "account": "اکاؤنٹ",
+    "admin": "ایڈمن"
+  },
+  "create": {
+    "heading": "آپ کیا بنانا چاہتے ہیں؟",
+    "placeholder": "اپنی زبان میں لکھیں… مثال: بچوں کے لیے عربی سائنس کی کتاب تصاویر کے ساتھ بنائیں",
+    "submit": "شروع کریں",
+    "thinking": "درخواست سمجھی جا رہی ہے…"
+  },
+  "job": {
+    "planTitle": "عملی منصوبہ",
+    "running": "جاری ہے",
+    "succeeded": "مکمل",
+    "failed": "مکمل نہ ہو سکا",
+    "cancelled": "منسوخ",
+    "partial": "جزوی طور پر مکمل",
+    "cancel": "منسوخ کریں",
+    "resume": "دوبارہ شروع کریں",
+    "step": {
+      "pending": "انتظار میں",
+      "running": "جاری",
+      "succeeded": "ہو گیا",
+      "failed": "ناکام",
+      "skipped": "چھوڑا گیا",
+      "not_configured": "configure نہیں"
+    }
+  },
+  "capability": {
+    "heading": "صلاحیتیں",
+    "available": "تیار",
+    "degraded": "غیر مستحکم",
+    "not_configured": "configure نہیں",
+    "notConfiguredHelp": "اس صلاحیت کے لیے ترتیبات میں provider شامل کرنا ضروری ہے۔",
+    "text.generate": "متن کی تیاری",
+    "text.reason": "تجزیہ و استدلال",
+    "text.translate": "ترجمہ",
+    "image.generate": "تصویر بنانا",
+    "image.edit": "تصویر میں ترمیم",
+    "video.textToVideo": "متن سے ویڈیو",
+    "video.imageToVideo": "تصویر سے ویڈیو",
+    "speech.tts": "متن سے آواز",
+    "speech.stt": "آواز سے متن",
+    "code.generate": "کوڈ کی تیاری",
+    "document.render": "دستاویز کی تیاری",
+    "embedding.create": "سیمانٹک ایمبیڈنگ"
+  },
+  "project": {
+    "title": "پروجیکٹس",
+    "empty": "ابھی کوئی پروجیکٹ نہیں۔",
+    "new": "نیا پروجیکٹ",
+    "open": "کھولیں",
+    "rename": "نام بدلیں",
+    "duplicate": "نقل بنائیں",
+    "delete": "حذف کریں",
+    "artifacts": "نتائج",
+    "assets": "فائلیں",
+    "versions": "ورژن",
+    "export": "برآمد"
+  },
+  "error": {
+    "generic": "کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔",
+    "rateLimited": "آج کی حد ختم ہو چکی ہے۔",
+    "notConfigured": "یہ صلاحیت ابھی configure نہیں ہوئی۔",
+    "unauthorized": "لاگ اِن ضروری ہے۔"
+  },
+  "auth": {
+    "signIn": "لاگ اِن",
+    "signUp": "اکاؤنٹ بنائیں",
+    "email": "ای میل",
+    "password": "پاس ورڈ",
+    "signOut": "خروج"
+  },
+  "plan": {
+    "free": "مفت",
+    "premium_monthly": "پریمیم ماہانہ",
+    "premium_yearly": "پریمیم سالانہ",
+    "current": "آپ کا موجودہ پلان",
+    "upgrade": "Premium پلان منتخب کریں",
+    "choose": "منتخب کریں",
+    "cancel": "سبسکرپشن منسوخ کریں",
+    "resume": "دوبارہ شروع کریں",
+    "perMonth": "ماہانہ",
+    "perYear": "سالانہ",
+    "priceUnavailable": "قیمت ابھی مقرر نہیں",
+    "remaining": "باقی",
+    "renews": "تجدید",
+    "expires": "اختتام",
+    "paymentNotConfigured": "ادائیگی کا نظام ابھی configure نہیں ہوا۔ سبسکرپشن کے لیے مالک سے رابطہ کریں۔",
+    "limitReached": "آپ کی مفت حد مکمل ہو گئی ہے۔ مزید تخلیق کے لیے Premium پلان منتخب کریں۔",
+    "history": "سبسکرپشن کی تاریخ"
+  },
+  "meter": {
+    "image": "تصاویر",
+    "video": "ویڈیو",
+    "website": "ویب سائٹ",
+    "game": "گیم",
+    "document": "دستاویزات"
+  },
+  "admin": {
+    "title": "ایڈمن",
+    "plans": "پلانز",
+    "users": "صارفین",
+    "providers": "پرووائیڈرز",
+    "role": "کردار",
+    "save": "محفوظ کریں",
+    "grant": "پلان دیں",
+    "noAccess": "آپ کو رسائی نہیں ہے۔"
+  }
+}

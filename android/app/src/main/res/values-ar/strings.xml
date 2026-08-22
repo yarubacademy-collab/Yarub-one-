@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">يعرب ون</string>
+    <string name="loading">جارٍ التحميل…</string>
+    <string name="offline">لا يوجد اتصال بـ يعرب ون.</string>
+</resources>

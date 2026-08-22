@@ -1,0 +1,16 @@
+{
+  "name": "@yarub/preview",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "tsx watch src/index.ts", "start": "node dist/index.js" },
+  "dependencies": {
+    "@yarub/config": "workspace:*",
+    "@yarub/db": "workspace:*",
+    "@yarub/sandbox": "workspace:*",
+    "@yarub/storage": "workspace:*",
+    "hono": "^4.6.0",
+    "@hono/node-server": "^1.13.0"
+  },
+  "devDependencies": { "tsx": "^4.19.0" }
+}

@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: yarub
+      POSTGRES_PASSWORD: yarub
+      POSTGRES_DB: yarub_one
+    ports: ["5432:5432"]
+    volumes: ["yarub_pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yarub"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes: ["yarub_redis:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: yarubdev
+      MINIO_ROOT_PASSWORD: yarubdev123
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["yarub_minio:/data"]
+
+volumes:
+  yarub_pg:
+  yarub_redis:
+  yarub_minio:

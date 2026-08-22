@@ -1,0 +1,41 @@
+{
+  "name": "@yarub/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "prisma generate --schema=../../packages/db/prisma/schema.prisma && prisma db push --accept-data-loss --skip-generate --schema=../../packages/db/prisma/schema.prisma && next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@yarub/ai-core": "workspace:*",
+    "@yarub/config": "workspace:*",
+    "@yarub/db": "workspace:*",
+    "@yarub/providers": "workspace:*",
+    "@yarub/sandbox": "workspace:*",
+    "@yarub/shared": "workspace:*",
+    "@yarub/storage": "workspace:*",
+    "argon2": "^0.41.1",
+    "bullmq": "^5.13.0",
+    "ioredis": "^5.4.1",
+    "jose": "^5.9.0",
+    "next": "^15.0.0",
+    "next-intl": "^3.20.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.23.8",
+    "jszip": "^3.10.1",
+    "@yarub/billing": "workspace:*",
+    "@yarub/documents": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.0",
+    "prisma": "^5.20.0"
+  }
+}

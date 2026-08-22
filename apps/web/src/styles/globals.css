@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Layout uses logical properties throughout (inline-start/end rather than
+ * left/right), so Arabic and Urdu mirror correctly without a second stylesheet.
+ */
+@layer base {
+  :root {
+    --font-arabic: 'IBM Plex Sans Arabic';
+    --font-urdu: 'Noto Nastaliq Urdu';
+    --font-latin: 'Inter';
+  }
+
+  html[lang='ar'] body { font-family: var(--font-arabic), sans-serif; line-height: 1.85; }
+  /* Nastaliq ascenders collide without extra vertical room. */
+  html[lang='ur'] body { font-family: var(--font-urdu), serif; line-height: 2.35; }
+  html[lang='en'] body { font-family: var(--font-latin), system-ui, sans-serif; line-height: 1.6; }
+
+  body {
+    background: theme('colors.parchment.DEFAULT');
+    color: theme('colors.ink.DEFAULT');
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Numerals stay legible in RTL text by keeping their own direction. */
+  .numeral { direction: ltr; unicode-bidi: isolate; }
+}
+
+@layer components {
+  .y-card {
+    @apply bg-parchment-raised border border-edge rounded-card shadow-raise;
+  }
+  .y-rail-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-ink-muted
+           hover:bg-parchment-sunk hover:text-ink transition-colors;
+  }
+  .y-rail-item[aria-current='page'] {
+    @apply bg-parchment-sunk text-ink font-semibold;
+  }
+  /* The accent is used sparingly: one amber element per view. */
+  .y-primary {
+    @apply bg-ink text-parchment px-5 py-2.5 rounded-lg font-semibold
+           hover:bg-ink-soft disabled:opacity-40 disabled:cursor-not-allowed transition-colors;
+  }
+  .y-step-dot {
+    @apply w-2.5 h-2.5 rounded-full shrink-0;
+  }
+}

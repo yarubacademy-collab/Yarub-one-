@@ -1,0 +1,127 @@
+{
+  "brand": {
+    "name": "يعرب ون",
+    "tagline": "منصّة الذكاء والإبداع"
+  },
+  "nav": {
+    "create": "إنشاء",
+    "chat": "محادثة",
+    "image": "الصور",
+    "video": "الفيديو",
+    "education": "التعليم",
+    "website": "المواقع",
+    "game": "الألعاب",
+    "visual": "التصميم",
+    "documents": "المستندات",
+    "projects": "المشاريع",
+    "settings": "الإعدادات",
+    "pricing": "الاشتراك",
+    "account": "الحساب",
+    "admin": "الإدارة"
+  },
+  "create": {
+    "heading": "ماذا تريد أن تُنشئ؟",
+    "placeholder": "اكتب ما تحتاجه بلغتك… مثال: أنشئ كتاب علوم للأطفال بالعربية مع رسومات",
+    "submit": "ابدأ",
+    "thinking": "جارٍ فهم الطلب…"
+  },
+  "job": {
+    "planTitle": "خطة التنفيذ",
+    "running": "قيد التنفيذ",
+    "succeeded": "اكتمل",
+    "failed": "تعذّر الإكمال",
+    "cancelled": "أُلغي",
+    "partial": "اكتمل جزئيًا",
+    "cancel": "إلغاء",
+    "resume": "استئناف",
+    "step": {
+      "pending": "بانتظار الدور",
+      "running": "جارٍ",
+      "succeeded": "تم",
+      "failed": "فشل",
+      "skipped": "تُخطّي",
+      "not_configured": "غير مُهيَّأ"
+    }
+  },
+  "capability": {
+    "heading": "القدرات",
+    "available": "مُهيّأة",
+    "degraded": "متقطعة",
+    "not_configured": "غير مُهيَّأة",
+    "notConfiguredHelp": "هذه القدرة تحتاج إلى إعداد مزوّد في الإعدادات قبل استخدامها.",
+    "text.generate": "توليد النصوص",
+    "text.reason": "التحليل والاستنتاج",
+    "text.translate": "الترجمة",
+    "image.generate": "إنشاء الصور",
+    "image.edit": "تعديل الصور",
+    "video.textToVideo": "من نص إلى فيديو",
+    "video.imageToVideo": "من صورة إلى فيديو",
+    "speech.tts": "تحويل النص إلى كلام",
+    "speech.stt": "تحويل الكلام إلى نص",
+    "code.generate": "توليد الشيفرة",
+    "document.render": "إخراج المستندات",
+    "embedding.create": "التضمينات الدلالية"
+  },
+  "project": {
+    "title": "المشاريع",
+    "empty": "لا توجد مشاريع بعد.",
+    "new": "مشروع جديد",
+    "open": "فتح",
+    "rename": "إعادة تسمية",
+    "duplicate": "نسخ",
+    "delete": "حذف",
+    "artifacts": "المخرجات",
+    "assets": "الملفات",
+    "versions": "الإصدارات",
+    "export": "تصدير"
+  },
+  "error": {
+    "generic": "حدث خطأ. حاول مرة أخرى.",
+    "rateLimited": "تجاوزت الحد المسموح لهذا اليوم.",
+    "notConfigured": "هذه القدرة غير مُهيَّأة بعد.",
+    "unauthorized": "يلزم تسجيل الدخول."
+  },
+  "auth": {
+    "signIn": "تسجيل الدخول",
+    "signUp": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "signOut": "خروج"
+  },
+  "plan": {
+    "free": "مجاني",
+    "premium_monthly": "بريميوم شهري",
+    "premium_yearly": "بريميوم سنوي",
+    "current": "خطتك الحالية",
+    "upgrade": "الترقية إلى بريميوم",
+    "choose": "اختيار",
+    "cancel": "إلغاء الاشتراك",
+    "resume": "استئناف الاشتراك",
+    "perMonth": "شهريًا",
+    "perYear": "سنويًا",
+    "priceUnavailable": "السعر غير محدد بعد",
+    "remaining": "المتبقي",
+    "renews": "يتجدد في",
+    "expires": "ينتهي في",
+    "paymentNotConfigured": "الدفع غير مُهيَّأ بعد. تواصل مع مالك المنصة لتفعيل الاشتراك.",
+    "limitReached": "لقد اكتملت حدّك المجاني. اختر خطة بريميوم لمواصلة الإنشاء.",
+    "history": "سجل الاشتراك"
+  },
+  "meter": {
+    "image": "الصور",
+    "video": "الفيديو",
+    "website": "المواقع",
+    "game": "الألعاب",
+    "document": "المستندات"
+  },
+  "admin": {
+    "title": "الإدارة",
+    "plans": "الخطط",
+    "users": "المستخدمون",
+    "providers": "المزوّدون",
+    "role": "الدور",
+    "save": "حفظ",
+    "grant": "منح خطة",
+    "noAccess": "لا تملك صلاحية الوصول."
+  }
+}

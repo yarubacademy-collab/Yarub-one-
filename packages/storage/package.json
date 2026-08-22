@@ -1,0 +1,11 @@
+{
+  "name": "@yarub/storage",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.660.0",
+    "@aws-sdk/s3-request-presigner": "^3.660.0",
+    "@yarub/shared": "workspace:*"
+  }
+}
