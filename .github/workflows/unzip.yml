@@ -1,62 +1,52 @@
-name: Unzip project
-
-on:
-  push:
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  unzip:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Extract the archive into the repository
-        run: |
-          set -e
-
-          if [ -f package.json ]; then
-            echo "Sources are already extracted. Nothing to do."
-            exit 0
-          fi
-
-          zip="$(ls *.zip 2>/dev/null | head -1)"
-          if [ -z "$zip" ]; then
-            echo "::error::No .zip found at the repository root."
-            ls -a
-            exit 1
-          fi
-          echo "Unpacking $zip"
-
-          unzip -q -o "$zip" -d .unpack
-
-          # The archive wraps everything in one folder; its contents belong at
-          # the repository root so that apps/web sits where Vercel expects it.
-          top="$(find .unpack -mindepth 1 -maxdepth 1 -type d | head -1)"
-          [ -n "$top" ] || top=".unpack"
-
-          # GITHUB_TOKEN may not push workflow files, so the ones already here
-          # are left untouched.
-          rm -rf "$top/.github/workflows"
-
-          shopt -s dotglob
-          cp -R "$top"/. .
-          rm -rf .unpack "$zip"
-
-          echo "Result:"
-          ls
-
-      - name: Commit the extracted files
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "Nothing to commit."
-          else
-            git commit -m "Extract project sources from archive"
-            git push
-          fi
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "NODE_ENV",
+    "APP_URL",
+    "PREVIEW_ORIGIN"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"],
+      "env": [
+        "DATABASE_URL",
+        "REDIS_URL",
+        "AUTH_SECRET",
+        "CREDENTIAL_SECRET",
+        "AUTH_EMAIL_FROM",
+        "SMTP_URL",
+        "S3_ENDPOINT",
+        "S3_REGION",
+        "S3_BUCKET",
+        "S3_ACCESS_KEY_ID",
+        "S3_SECRET_ACCESS_KEY",
+        "TEXT_PRIMARY_API_KEY",
+        "TEXT_PRIMARY_BASE_URL",
+        "TEXT_PRIMARY_MODEL",
+        "TEXT_FALLBACK_API_KEY",
+        "TEXT_FALLBACK_BASE_URL",
+        "TEXT_FALLBACK_MODEL",
+        "IMAGE_API_KEY",
+        "IMAGE_BASE_URL",
+        "IMAGE_MODEL",
+        "VIDEO_API_KEY",
+        "VIDEO_BASE_URL",
+        "VIDEO_MODEL",
+        "SPEECH_API_KEY",
+        "SPEECH_BASE_URL",
+        "SPEECH_TTS_MODEL",
+        "SPEECH_STT_MODEL",
+        "EMBEDDING_API_KEY",
+        "EMBEDDING_BASE_URL",
+        "EMBEDDING_MODEL",
+        "PAYMENT_API_KEY",
+        "PAYMENT_WEBHOOK_SECRET"
+      ]
+    },
+    "typecheck": { "dependsOn": ["^build"] },
+    "lint": {},
+    "test": { "dependsOn": ["^build"] },
+    "dev": { "cache": false, "persistent": true }
+  }
+}
