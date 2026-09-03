@@ -1,4 +1,4 @@
-// YARUB ONE — data model
+// YARUB ONE â€” data model
 // Every artifact belongs to a Project. There are no orphan outputs.
 
 generator client {
@@ -240,13 +240,11 @@ model AuditLog {
   @@index([userId, at])
 }
 
-/**
- * Credit grants.
- *
- * Debits are derived from UsageLog rather than duplicated here, so the ledger
- * cannot disagree with what was actually spent. A grant is append-only; a
- * correction is a negative grant, never an edit.
- */
+/// Credit grants.
+///
+/// Debits are derived from UsageLog rather than duplicated here, so the ledger
+/// cannot disagree with what was actually spent. A grant is append-only; a
+/// correction is a negative grant, never an edit.
 model CreditGrant {
   id        String    @id @default(cuid())
   userId    String
@@ -261,13 +259,11 @@ model CreditGrant {
   @@index([userId, createdAt])
 }
 
-/**
- * Plans are data, not code.
- *
- * Prices, quotas and video duration ceilings all live here so the owner can
- * change them from the admin area without a deploy. The application reads
- * limits from this table; the constants in @yarub/billing only seed it.
- */
+/// Plans are data, not code.
+///
+/// Prices, quotas and video duration ceilings all live here so the owner can
+/// change them from the admin area without a deploy. The application reads
+/// limits from this table; the constants in @yarub/billing only seed it.
 model Plan {
   id       String  @id @default(cuid())
   code     String  @unique // free | premium_monthly | premium_yearly
@@ -276,7 +272,7 @@ model Plan {
 
   priceMinor Int    @default(0)
   currency   String @default("USD")
-  /** Optional promotional price; when set and unexpired it overrides priceMinor. */
+  /// Optional promotional price; when set and unexpired it overrides priceMinor.
   promoPriceMinor Int?
   promoEndsAt     DateTime?
 
@@ -304,9 +300,9 @@ model Subscription {
   startedAt DateTime           @default(now())
   expiresAt DateTime?
   graceDays Int                @default(3)
-  /** Set when the user cancels; access continues until expiresAt. */
+  /// Set when the user cancels; access continues until expiresAt.
   cancelledAt DateTime?
-  /** Opaque reference from whichever payment provider is connected later. */
+  /// Opaque reference from whichever payment provider is connected later.
   externalRef String?
 
   createdAt DateTime @default(now())
@@ -317,10 +313,8 @@ model Subscription {
   @@index([userId, status])
 }
 
-/**
- * Append-only billing history. Payment provider webhooks write here; nothing
- * mutates a past event, so subscription history is always reconstructable.
- */
+/// Append-only billing history. Payment provider webhooks write here; nothing
+/// mutates a past event, so subscription history is always reconstructable.
 model BillingEvent {
   id        String   @id @default(cuid())
   userId    String
@@ -328,7 +322,7 @@ model BillingEvent {
   planCode  String?
   amountMinor Int?
   currency  String?
-  /** Provider name and reference; null while no provider is connected. */
+  /// Provider name and reference; null while no provider is connected.
   provider    String?
   externalRef String?
   payload   Json?
