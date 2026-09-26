@@ -5,6 +5,7 @@ const withNextIntl = createNextIntlPlugin('./src/lib/i18n.ts');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ['bullmq', 'ioredis'],
 
   // Workspace packages ship TypeScript source rather than a build step, so
   // Next must compile them itself.
