@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Locale } from '@yarub/shared';
 import { JobProgress } from './JobProgress';
@@ -10,11 +10,20 @@ interface PlanView {
   steps: Array<{ id: string; title: string; capability: string }>;
 }
 
+interface ThreadEntry {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 /**
  * The primary entry point: one box, any request, any of the three languages.
  *
  * The user never picks a mode. What comes back — an answer, a question, or a
  * running project — is the Core's decision, not a setting.
+ *
+ * Exchanges accumulate in a running thread rather than replacing one another,
+ * so an earlier question and answer stay visible while a new one is asked —
+ * the ordinary expectation for a chat surface.
  */
 export function CreateConsole({ locale }: { locale: Locale }) {
   const t = useTranslations('create');
@@ -22,24 +31,33 @@ export function CreateConsole({ locale }: { locale: Locale }) {
 
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [answer, setAnswer] = useState('');
+  const [thread, setThread] = useState<ThreadEntry[]>([]);
   const [question, setQuestion] = useState('');
   const [job, setJob] = useState<{ jobId: string; plan: PlanView } | null>(null);
   const [error, setError] = useState('');
 
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [thread, question, job]);
+
   async function submit() {
-    if (!input.trim() || busy) return;
+    const message = input.trim();
+    if (!message || busy) return;
+
     setBusy(true);
-    setAnswer('');
+    setInput('');
     setQuestion('');
     setJob(null);
     setError('');
+    setThread((prev) => [...prev, { role: 'user', content: message }]);
 
     try {
       const res = await fetch('/api/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request: input, locale }),
+        body: JSON.stringify({ request: message, locale }),
       });
 
       if (!res.ok) {
@@ -61,7 +79,7 @@ export function CreateConsole({ locale }: { locale: Locale }) {
       }
 
       // Simple request: stream the answer instead of creating a project.
-      await streamAnswer();
+      await streamAnswer(message);
     } catch {
       setError(tError('generic'));
     } finally {
@@ -69,11 +87,11 @@ export function CreateConsole({ locale }: { locale: Locale }) {
     }
   }
 
-  async function streamAnswer() {
+  async function streamAnswer(message: string) {
     const res = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: input, locale }),
+      body: JSON.stringify({ message, locale }),
     });
 
     const contentType = res.headers.get('content-type') ?? '';
@@ -82,6 +100,11 @@ export function CreateConsole({ locale }: { locale: Locale }) {
       if (data.kind === 'clarify') setQuestion(data.question);
       return;
     }
+
+    // Reserve the assistant's place in the thread now, and grow its content
+    // in place as chunks arrive, rather than holding the answer outside the
+    // thread until it finishes.
+    setThread((prev) => [...prev, { role: 'assistant', content: '' }]);
 
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
@@ -100,16 +123,45 @@ export function CreateConsole({ locale }: { locale: Locale }) {
         if (payload === '[DONE]') return;
         const parsed = JSON.parse(payload) as { delta?: string; error?: { message: string } };
         if (parsed.error) setError(parsed.error.message);
-        if (parsed.delta) setAnswer((prev) => prev + parsed.delta);
+        if (parsed.delta) {
+          const delta = parsed.delta;
+          setThread((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last?.role === 'assistant') {
+              next[next.length - 1] = { ...last, content: last.content + delta };
+            }
+            return next;
+          });
+        }
       }
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 md:p-10">
+    <div className="max-w-3xl mx-auto p-6 md:p-10 flex flex-col min-h-[calc(100vh-4rem)]">
       <h1 className="text-2xl md:text-3xl font-bold mb-6">{t('heading')}</h1>
 
-      <div className="y-card p-4">
+      <div className="flex-1 space-y-4 mb-6">
+        {thread.map((entry, i) => (
+          <div
+            key={i}
+            className={`y-card p-4 max-w-[85%] whitespace-pre-wrap ${
+              entry.role === 'user' ? 'ms-auto bg-amber-deep/20 border-amber-deep/40' : ''
+            }`}
+          >
+            {entry.content}
+          </div>
+        ))}
+
+        {question && <p className="y-card p-5">{question}</p>}
+        {job && <JobProgress jobId={job.jobId} steps={job.plan.steps} />}
+        {error && <p className="text-danger text-sm">{error}</p>}
+
+        <div ref={bottomRef} />
+      </div>
+
+      <div className="y-card p-4 sticky bottom-4">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -117,7 +169,7 @@ export function CreateConsole({ locale }: { locale: Locale }) {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit();
           }}
           placeholder={t('placeholder')}
-          rows={4}
+          rows={3}
           className="w-full resize-none bg-transparent outline-none placeholder:text-ink-muted/60"
         />
         <div className="flex justify-end pt-3 border-t border-edge">
@@ -126,15 +178,6 @@ export function CreateConsole({ locale }: { locale: Locale }) {
           </button>
         </div>
       </div>
-
-      {error && <p className="mt-4 text-danger text-sm">{error}</p>}
-      {question && <p className="mt-6 y-card p-5">{question}</p>}
-      {answer && <article className="mt-6 y-card p-6 whitespace-pre-wrap">{answer}</article>}
-      {job && (
-        <div className="mt-6">
-          <JobProgress jobId={job.jobId} steps={job.plan.steps} />
-        </div>
-      )}
     </div>
   );
 }
