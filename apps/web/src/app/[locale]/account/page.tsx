@@ -7,9 +7,6 @@ import { UsagePanel } from '../../../components/UsagePanel';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Account: who you are, what plan you are on, what you have left.
- */
 export default async function AccountPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations('plan');
@@ -67,3 +64,6 @@ export default async function AccountPage({ params }: { params: Promise<{ locale
       )}
 
       <UsagePanel />
+    </div>
+  );
+}
