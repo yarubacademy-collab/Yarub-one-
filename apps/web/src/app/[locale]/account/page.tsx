@@ -4,8 +4,8 @@ import { prisma } from '@yarub/db';
 import { currentUserId } from '../../../lib/session';
 import { resolveEntitlements } from '../../../lib/entitlements';
 import { UsagePanel } from '../../../components/UsagePanel';
-export const dynamic = 'force-dynamic';
 
+export const dynamic = 'force-dynamic';
 
 /**
  * Account: who you are, what plan you are on, what you have left.
@@ -67,6 +67,3 @@ export default async function AccountPage({ params }: { params: Promise<{ locale
       )}
 
       <UsagePanel />
-    </div>
-  );
-}
