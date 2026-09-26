@@ -6,6 +6,8 @@ import { LOCALES, dirFor, type Locale } from '@yarub/shared';
 import { AppShell } from '../../components/AppShell';
 import '../../styles/globals.css';
 
+export const dynamic = 'force-dynamic';
+
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
 }
