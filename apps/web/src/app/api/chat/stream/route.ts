@@ -5,6 +5,7 @@ import { core } from '../../../../lib/core';
 import { requireUserId } from '../../../../lib/session';
 import { enforceRateLimit } from '../../../../lib/rate-limit';
 import { toHttpResponse } from '../../../../lib/logger';
+import { needsLiveInfo, webSearch } from '../../../../lib/web-search';
 
 export const runtime = 'nodejs';
 
@@ -68,6 +69,21 @@ export async function POST(request: Request) {
           })),
         },
       });
+    }
+
+    // Time-sensitive questions (weather, "today", prices, scores...) need
+    // information no model can know on its own. When a search key is
+    // configured, look it up and hand the model fresh context to answer
+    // from; when it is not, or the lookup fails, the model answers exactly
+    // as it always did, honestly, without inventing a live fact.
+    if (needsLiveInfo(body.message)) {
+      const liveInfo = await webSearch(body.message);
+      if (liveInfo) {
+        decision.messages.splice(1, 0, {
+          role: 'system',
+          content: `Live web search results for the user's question. Use them if relevant, and mention that the information comes from a live search:\n\n${liveInfo}`,
+        });
+      }
     }
 
     const encoder = new TextEncoder();
