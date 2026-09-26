@@ -4,6 +4,7 @@ import { prisma } from '@yarub/db';
 import { currentUserId } from '../../../lib/session';
 import { resolveEntitlements } from '../../../lib/entitlements';
 import { UsagePanel } from '../../../components/UsagePanel';
+export const dynamic = 'force-dynamic';
 
 /**
  * Account: who you are, what plan you are on, what you have left.
