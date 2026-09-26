@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { prisma } from '@yarub/db';
 import { currentUserId } from '../../../lib/session';
+export const dynamic = 'force-dynamic';
 
 /**
  * Projects are the continuity mechanism: close the app, come back, carry on.
