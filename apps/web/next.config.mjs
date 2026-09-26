@@ -1,3 +1,4 @@
+
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/lib/i18n.ts');
@@ -6,9 +7,12 @@ const withNextIntl = createNextIntlPlugin('./src/lib/i18n.ts');
 const nextConfig = {
   reactStrictMode: true,
 
+  outputFileTracingIncludes: {
+    '/**/*': [
+      '../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/**',
+    ],
+  },
 
-  // Workspace packages ship TypeScript source rather than a build step, so
-  // Next must compile them itself.
   transpilePackages: [
     '@yarub/shared',
     '@yarub/config',
@@ -21,22 +25,14 @@ const nextConfig = {
     '@yarub/db',
   ],
 
-  // BullMQ can speak to Valkey as well as Redis, so it references
-  // @valkey/valkey-glide. That package is an optional peer and is not
-  // installed here; without this line Next tries to bundle it and the build
-  // fails on a dependency the job queue never actually uses over ioredis.
   serverExternalPackages: ['bullmq', 'ioredis'],
 
   webpack(config, { isServer }) {
-    // ESM requires explicit .js specifiers in TypeScript source. Webpack
-    // resolves those back to the .ts files they were written in.
     config.resolve.extensionAlias = {
       ...config.resolve.extensionAlias,
       '.js': ['.ts', '.tsx', '.js'],
     };
 
-    // Same reason as above: keep the optional Valkey client out of the bundle
-    // on both the server and the client build.
     config.resolve.alias = {
       ...config.resolve.alias,
       '@valkey/valkey-glide': false,
@@ -44,7 +40,7 @@ const nextConfig = {
 
     return config;
   },
-  // Generated code never runs here; it is served from PREVIEW_ORIGIN.
+
   async headers() {
     return [
       {
