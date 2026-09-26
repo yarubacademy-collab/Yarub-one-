@@ -8,6 +8,10 @@
  * this is a lookup, not a capability: a missing key or a failed request
  * must never change what the model classifies the request as — only what
  * context it sees once classification has already happened.
+ *
+ * Every failure path logs a warning naming the reason (missing key,
+ * non-ok response, or thrown error) so a stuck integration is visible in
+ * Vercel's function logs instead of failing invisibly.
  */
 
 const LIVE_INFO_PATTERNS = [
@@ -15,8 +19,8 @@ const LIVE_INFO_PATTERNS = [
   /\b(weather|temperature|forecast|today'?s?|current(ly)?|right now|latest|score|breaking news|exchange rate|stock price|what time is it)\b/i,
   // Arabic
   /الطقس|درجة الحرارة|اليوم|الآن|آخر الأخبار|سعر الصرف|نتيجة المباراة/,
-  // Urdu
-  /موسم|درجہ حرارت|آج کا|ابھی|تازہ ترین|خبریں|قیمت|اسکور/,
+  // Urdu (formal and the common transliterated spellings people actually type)
+  /موسم|درجہ\s?حرارت|ٹمپریچر|ٹمپریچرکتنا|آج کا|ابھی|تازہ ترین|خبریں|قیمت|اسکور/,
 ];
 
 /** True when the request looks like it needs information newer than any model's training. */
@@ -42,7 +46,10 @@ interface TavilyResponse {
  */
 export async function webSearch(query: string): Promise<string | null> {
   const apiKey = process.env.SEARCH_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.warn('[web-search] SEARCH_API_KEY is not set; skipping live lookup.');
+    return null;
+  }
 
   try {
     const response = await fetch('https://api.tavily.com/search', {
@@ -60,7 +67,13 @@ export async function webSearch(query: string): Promise<string | null> {
       signal: AbortSignal.timeout(8_000),
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      console.warn(
+        `[web-search] Tavily returned ${response.status}: ${body.slice(0, 300)}`,
+      );
+      return null;
+    }
 
     const data = (await response.json()) as TavilyResponse;
     const parts: string[] = [];
@@ -70,8 +83,14 @@ export async function webSearch(query: string): Promise<string | null> {
       parts.push(`${result.title}: ${result.content}`.slice(0, 500));
     }
 
-    return parts.length > 0 ? parts.join('\n\n').slice(0, 3000) : null;
-  } catch {
+    if (parts.length === 0) {
+      console.warn('[web-search] Tavily returned no results for this query.');
+      return null;
+    }
+
+    return parts.join('\n\n').slice(0, 3000);
+  } catch (error) {
+    console.warn('[web-search] Lookup failed:', error instanceof Error ? error.message : error);
     return null;
   }
 }
