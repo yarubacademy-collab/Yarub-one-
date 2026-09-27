@@ -1,14 +1,20 @@
 package one.yarub.app
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.webkit.CookieManager
+import android.webkit.PermissionRequest
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import java.net.URI
 
 /**
@@ -22,6 +28,24 @@ import java.net.URI
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+
+    // A WebView permission request left waiting on the OS-level runtime
+    // permission dialog. There is at most one at a time — the page cannot
+    // ask again until this one resolves.
+    private var pendingMicRequest: PermissionRequest? = null
+
+    private val micPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        val request = pendingMicRequest
+        pendingMicRequest = null
+        if (request == null) return@registerForActivityResult
+        if (granted) {
+            request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
+        } else {
+            request.deny()
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +84,31 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView, url: String) {
                 findViewById<View>(R.id.splash)?.visibility = View.GONE
+            }
+        }
+
+        // Voice input needs the microphone, and only for the backend's own
+        // origin — nothing else the WebView could ever load should be able
+        // to ask for it.
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onPermissionRequest(request: PermissionRequest) {
+                val wantsMic = request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)
+                if (!wantsMic || !isBackendOrigin(request.origin.toString())) {
+                    request.deny()
+                    return
+                }
+
+                val alreadyGranted = ContextCompat.checkSelfPermission(
+                    this@MainActivity,
+                    Manifest.permission.RECORD_AUDIO,
+                ) == PackageManager.PERMISSION_GRANTED
+
+                if (alreadyGranted) {
+                    request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
+                } else {
+                    pendingMicRequest = request
+                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
             }
         }
 
