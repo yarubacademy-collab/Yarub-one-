@@ -13,10 +13,12 @@ const CHOICES = [
 ] as const;
 
 /**
- * The first screen anyone sees: pick what to make, then land in the console
- * for it. Previously this route redirected straight into /create, so there
- * was no moment to choose — every session began in the same text box
- * regardless of intent.
+ * The first screen anyone sees: six tiles filling the full viewport, each a
+ * direct door into one capability. Previously this route redirected straight
+ * into /create, so there was no moment to choose — every session began in
+ * the same text box regardless of intent. The tiles are edge to edge, like an
+ * app launcher, rather than a card grid floating over visible background —
+ * the choice itself is the whole screen.
  */
 export default async function LocaleRoot({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -24,24 +26,17 @@ export default async function LocaleRoot({ params }: { params: Promise<{ locale:
   const typedLocale = locale as Locale;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-2xl w-full text-center">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">{t('brand.name')}</h1>
-        <p className="text-ink-muted mb-10">{t('brand.tagline')}</p>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {CHOICES.map(({ key, icon: Icon }) => (
-            <Link
-              key={key}
-              href={`/${typedLocale}/${key}`}
-              className="y-card p-6 flex flex-col items-center gap-3 hover:border-amber transition-colors"
-            >
-              <Icon className="w-8 h-8 text-amber" />
-              <span className="text-lg font-medium">{t(`nav.${key}`)}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
+    <div className="grid grid-cols-2 grid-rows-3 h-screen">
+      {CHOICES.map(({ key, icon: Icon }) => (
+        <Link
+          key={key}
+          href={`/${typedLocale}/${key}`}
+          className="flex flex-col items-center justify-center gap-3 border border-edge hover:bg-parchment-raised transition-colors"
+        >
+          <Icon className="w-10 h-10 text-amber" />
+          <span className="text-lg font-medium">{t(`nav.${key}`)}</span>
+        </Link>
+      ))}
     </div>
   );
 }
