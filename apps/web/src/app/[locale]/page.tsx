@@ -1,8 +1,16 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { MessageSquare, Image as ImageIcon, Video, Globe, Gamepad2, Sparkles } from 'lucide-react';
 import type { Locale } from '@yarub/shared';
 
-const CHOICES = ['chat', 'image', 'video', 'website', 'game', 'documents', 'visual', 'education'] as const;
+const CHOICES = [
+  { key: 'create', icon: Sparkles },
+  { key: 'chat', icon: MessageSquare },
+  { key: 'image', icon: ImageIcon },
+  { key: 'video', icon: Video },
+  { key: 'website', icon: Globe },
+  { key: 'game', icon: Gamepad2 },
+] as const;
 
 /**
  * The first screen anyone sees: pick what to make, then land in the console
@@ -21,24 +29,18 @@ export default async function LocaleRoot({ params }: { params: Promise<{ locale:
         <h1 className="text-3xl md:text-4xl font-bold mb-2">{t('brand.name')}</h1>
         <p className="text-ink-muted mb-10">{t('brand.tagline')}</p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {CHOICES.map((choice) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {CHOICES.map(({ key, icon: Icon }) => (
             <Link
-              key={choice}
-              href={`/${typedLocale}/${choice}`}
-              className="y-card p-6 hover:border-amber transition-colors text-lg font-medium"
+              key={key}
+              href={`/${typedLocale}/${key}`}
+              className="y-card p-6 flex flex-col items-center gap-3 hover:border-amber transition-colors"
             >
-              {t(`nav.${choice}`)}
+              <Icon className="w-8 h-8 text-amber" />
+              <span className="text-lg font-medium">{t(`nav.${key}`)}</span>
             </Link>
           ))}
         </div>
-
-        <Link
-          href={`/${typedLocale}/create`}
-          className="inline-block mt-8 text-sm text-ink-muted underline underline-offset-4"
-        >
-          {t('nav.create')}
-        </Link>
       </div>
     </div>
   );
