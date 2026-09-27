@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { ArrowUp, Square } from 'lucide-react';
 import type { Locale } from '@yarub/shared';
 import { JobProgress } from './JobProgress';
 
@@ -37,14 +38,26 @@ export function CreateConsole({ locale }: { locale: Locale }) {
   const [error, setError] = useState('');
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  // Holds the in-flight request so the stop button can cancel it. A ref, not
+  // state, because starting or aborting it should never itself trigger a
+  // re-render.
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [thread, question, job]);
 
+  /** Cancels the in-flight request. Whatever text has streamed in stays in the thread. */
+  function stop() {
+    abortRef.current?.abort();
+  }
+
   async function submit() {
     const message = input.trim();
     if (!message || busy) return;
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setBusy(true);
     setInput('');
@@ -58,6 +71,7 @@ export function CreateConsole({ locale }: { locale: Locale }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request: message, locale }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -79,19 +93,23 @@ export function CreateConsole({ locale }: { locale: Locale }) {
       }
 
       // Simple request: stream the answer instead of creating a project.
-      await streamAnswer(message);
-    } catch {
-      setError(tError('generic'));
+      await streamAnswer(message, controller.signal);
+    } catch (err) {
+      // A user-initiated stop throws AbortError; that is success, not failure.
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        setError(tError('generic'));
+      }
     } finally {
       setBusy(false);
     }
   }
 
-  async function streamAnswer(message: string) {
+  async function streamAnswer(message: string, signal: AbortSignal) {
     const res = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, locale }),
+      signal,
     });
 
     const contentType = res.headers.get('content-type') ?? '';
@@ -173,9 +191,24 @@ export function CreateConsole({ locale }: { locale: Locale }) {
           className="w-full resize-none bg-transparent outline-none placeholder:text-ink-muted/60"
         />
         <div className="flex justify-end pt-3 border-t border-edge">
-          <button onClick={() => void submit()} disabled={busy || !input.trim()} className="y-primary">
-            {busy ? t('thinking') : t('submit')}
-          </button>
+          {busy ? (
+            <button
+              onClick={stop}
+              aria-label="Stop"
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-ink text-parchment hover:bg-ink-soft transition-colors"
+            >
+              <Square className="w-4 h-4" fill="currentColor" />
+            </button>
+          ) : (
+            <button
+              onClick={() => void submit()}
+              disabled={!input.trim()}
+              aria-label={t('submit')}
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-ink text-parchment hover:bg-ink-soft transition-colors disabled:opacity-40"
+            >
+              <ArrowUp className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
     </div>
