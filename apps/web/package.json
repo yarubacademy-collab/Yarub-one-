@@ -28,7 +28,8 @@
     "zod": "^3.23.8",
     "jszip": "^3.10.1",
     "@yarub/billing": "workspace:*",
-    "@yarub/documents": "workspace:*"
+    "@yarub/documents": "workspace:*",
+    "lucide-react": "^0.400.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
