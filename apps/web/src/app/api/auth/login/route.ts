@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import argon2 from 'argon2';
-import { AppError } from '@yarub/shared';
+import { AppError, LOCALES, type Localized } from '@yarub/shared';
 import { prisma } from '@yarub/db';
 import { createSession } from '../../../../lib/session';
 import { enforceRateLimit } from '../../../../lib/rate-limit';
@@ -8,7 +8,19 @@ import { errorResponse } from '../../chat/stream/route';
 
 export const runtime = 'nodejs';
 
-const schema = z.object({ email: z.string().email(), password: z.string().min(1) });
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+  // Optional and defaulted, not required: older clients that never send it
+  // still get a sensible message instead of a validation failure.
+  locale: z.enum(LOCALES).default('en'),
+});
+
+const CREDENTIALS_ERROR: Localized = {
+  en: 'Your email or password is incorrect.',
+  ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+  ur: 'ای میل یا پاس ورڈ درست نہیں۔',
+};
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +36,7 @@ export async function POST(request: Request) {
       : (await argon2.hash(body.password), false);
 
     if (!user || !valid) {
-      throw new AppError('UNAUTHORIZED', 'Bad credentials', 'ای میل یا پاس ورڈ درست نہیں۔');
+      throw new AppError('UNAUTHORIZED', 'Bad credentials', CREDENTIALS_ERROR[body.locale]);
     }
 
     await createSession(user.id);
