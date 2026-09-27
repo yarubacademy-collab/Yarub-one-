@@ -46,7 +46,7 @@ export function AuthForm({ mode, locale }: { mode: 'login' | 'register'; locale:
         return;
       }
 
-      router.push(`/${locale}/create`);
+      router.push(`/${locale}`);
       router.refresh();
     } catch {
       setError(tError('generic'));
