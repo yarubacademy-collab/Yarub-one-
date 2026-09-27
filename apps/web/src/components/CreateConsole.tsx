@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { ArrowUp, Square } from 'lucide-react';
+import { ArrowUp, Square, Mic, Paperclip } from 'lucide-react';
 import type { Locale } from '@yarub/shared';
 import { JobProgress } from './JobProgress';
 
@@ -16,6 +16,20 @@ interface ThreadEntry {
   content: string;
 }
 
+// Not every TypeScript lib.dom version ships these types; the API is
+// feature-detected at runtime regardless, so a minimal shape is enough here.
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  start(): void;
+  stop(): void;
+  onresult: ((event: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+}
+
+const RECOGNITION_LANG: Record<Locale, string> = { en: 'en-US', ar: 'ar-SA', ur: 'ur-PK' };
+
 /**
  * The primary entry point: one box, any request, any of the three languages.
  *
@@ -24,7 +38,9 @@ interface ThreadEntry {
  *
  * Exchanges accumulate in a running thread rather than replacing one another,
  * so an earlier question and answer stay visible while a new one is asked —
- * the ordinary expectation for a chat surface.
+ * the ordinary expectation for a chat surface. The input bar itself is fixed
+ * to the bottom of the viewport, not the bottom of the page content, so it
+ * cannot drift or resize as the thread above it grows.
  */
 export function CreateConsole({ locale }: { locale: Locale }) {
   const t = useTranslations('create');
@@ -32,16 +48,19 @@ export function CreateConsole({ locale }: { locale: Locale }) {
 
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [listening, setListening] = useState(false);
   const [thread, setThread] = useState<ThreadEntry[]>([]);
   const [question, setQuestion] = useState('');
   const [job, setJob] = useState<{ jobId: string; plan: PlanView } | null>(null);
   const [error, setError] = useState('');
 
   const bottomRef = useRef<HTMLDivElement>(null);
-  // Holds the in-flight request so the stop button can cancel it. A ref, not
-  // state, because starting or aborting it should never itself trigger a
-  // re-render.
+  // Holds the in-flight request so the stop button can cancel it, and the
+  // active speech session so toggling voice input twice doesn't leak one —
+  // both are refs, not state, because starting or stopping them should never
+  // itself trigger a re-render.
   const abortRef = useRef<AbortController | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -50,6 +69,36 @@ export function CreateConsole({ locale }: { locale: Locale }) {
   /** Cancels the in-flight request. Whatever text has streamed in stays in the thread. */
   function stop() {
     abortRef.current?.abort();
+  }
+
+  /** Speech-to-text for the input box. Silently does nothing where the browser lacks support. */
+  function toggleVoice() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    type SpeechWindow = Window & {
+      SpeechRecognition?: new () => SpeechRecognitionLike;
+      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+    };
+    const w = window as SpeechWindow;
+    const Recognition = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!Recognition) return;
+
+    const recognition = new Recognition();
+    recognition.lang = RECOGNITION_LANG[locale];
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript;
+      if (transcript) setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    };
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
   }
 
   async function submit() {
@@ -157,10 +206,10 @@ export function CreateConsole({ locale }: { locale: Locale }) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 md:p-10 flex flex-col min-h-[calc(100vh-4rem)]">
+    <div className="max-w-3xl mx-auto p-6 md:p-10 pb-40">
       <h1 className="text-2xl md:text-3xl font-bold mb-6">{t('heading')}</h1>
 
-      <div className="flex-1 space-y-4 mb-6">
+      <div className="space-y-4">
         {thread.map((entry, i) => (
           <div
             key={i}
@@ -179,36 +228,63 @@ export function CreateConsole({ locale }: { locale: Locale }) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="y-card p-4 sticky bottom-4">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit();
-          }}
-          placeholder={t('placeholder')}
-          rows={3}
-          className="w-full resize-none bg-transparent outline-none placeholder:text-ink-muted/60"
-        />
-        <div className="flex justify-end pt-3 border-t border-edge">
-          {busy ? (
-            <button
-              onClick={stop}
-              aria-label="Stop"
-              className="w-9 h-9 rounded-full flex items-center justify-center bg-ink text-parchment hover:bg-ink-soft transition-colors"
-            >
-              <Square className="w-4 h-4" fill="currentColor" />
-            </button>
-          ) : (
-            <button
-              onClick={() => void submit()}
-              disabled={!input.trim()}
-              aria-label={t('submit')}
-              className="w-9 h-9 rounded-full flex items-center justify-center bg-ink text-parchment hover:bg-ink-soft transition-colors disabled:opacity-40"
-            >
-              <ArrowUp className="w-5 h-5" />
-            </button>
-          )}
+      {/* Fixed to the viewport, not the page: this bar cannot drift or
+          resize as the thread above it grows, unlike a bar positioned
+          relative to page content. */}
+      <div className="fixed bottom-0 inset-x-0 border-t border-edge bg-parchment/95 backdrop-blur">
+        <div className="max-w-3xl mx-auto p-4">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit();
+            }}
+            placeholder={t('placeholder')}
+            rows={2}
+            className="w-full resize-none bg-transparent outline-none placeholder:text-ink-muted/60"
+          />
+          <div className="flex justify-between items-center pt-3 border-t border-edge">
+            <div className="flex gap-1">
+              <button
+                type="button"
+                disabled
+                title="File attachments need cloud storage configured first"
+                aria-label="Attach file"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-ink-muted opacity-40 cursor-not-allowed"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={toggleVoice}
+                aria-label="Voice input"
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                  listening ? 'bg-danger/20 text-danger' : 'text-ink-muted hover:bg-parchment-raised'
+                }`}
+              >
+                <Mic className="w-5 h-5" />
+              </button>
+            </div>
+
+            {busy ? (
+              <button
+                onClick={stop}
+                aria-label="Stop"
+                className="w-9 h-9 rounded-full flex items-center justify-center bg-ink text-parchment hover:bg-ink-soft transition-colors"
+              >
+                <Square className="w-4 h-4" fill="currentColor" />
+              </button>
+            ) : (
+              <button
+                onClick={() => void submit()}
+                disabled={!input.trim()}
+                aria-label={t('submit')}
+                className="w-9 h-9 rounded-full flex items-center justify-center bg-ink text-parchment hover:bg-ink-soft transition-colors disabled:opacity-40"
+              >
+                <ArrowUp className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
