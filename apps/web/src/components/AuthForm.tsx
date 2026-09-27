@@ -33,9 +33,7 @@ export function AuthForm({ mode, locale }: { mode: 'login' | 'register'; locale:
       const res = await fetch(`/api/auth/${mode}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          isRegister ? { email, password, locale } : { email, password },
-        ),
+        body: JSON.stringify({ email, password, locale }),
       });
 
       if (!res.ok) {
