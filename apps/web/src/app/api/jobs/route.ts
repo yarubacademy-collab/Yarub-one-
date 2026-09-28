@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { after } from 'next/server';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { LOCALES, AppError } from '@yarub/shared';
@@ -12,6 +13,8 @@ import { QuotaExceededError, enforcePlan, resolveEntitlements } from '../../../l
 import { CooldownError } from '../../../lib/cooldowns';
 
 export const runtime = 'nodejs';
+// Long enough for a website or game to finish when jobs run in this request (see below).
+export const maxDuration = 300;
 
 const connection = new IORedis(loadConfig().REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true });
 const jobQueue = new Queue('yarub.jobs', { connection });
@@ -111,7 +114,17 @@ export async function POST(request: Request) {
       })),
     });
 
-    await jobQueue.add('execute', { jobId: job.id, projectId: project.id, userId });
+    if (process.env.INLINE_JOBS === '1') {
+      // No worker process: run the job here, after the response has been sent, so
+      // the person sees their progress screen straight away. The import is dynamic
+      // so the queue path never loads any of this.
+      after(async () => {
+        const { runJobInline } = await import('../../../lib/run-job');
+        await runJobInline({ jobId: job.id, projectId: project.id, userId });
+      });
+    } else {
+      await jobQueue.add('execute', { jobId: job.id, projectId: project.id, userId });
+    }
 
     return Response.json({
       kind: 'project',
