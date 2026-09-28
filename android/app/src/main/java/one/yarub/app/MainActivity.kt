@@ -2,15 +2,21 @@ package one.yarub.app
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.DownloadManager
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.PermissionRequest
+import android.webkit.URLUtil
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -110,6 +116,38 @@ class MainActivity : AppCompatActivity() {
                     micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                 }
             }
+        }
+
+        // A WebView does nothing when a download link is tapped unless the app
+        // handles it, so downloads (a generated website or game) go to the system
+        // download manager. It carries the session cookie, because the file sits
+        // behind sign-in, and it only ever fetches from the backend's own origin.
+        webView.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
+            if (!isBackendOrigin(url)) return@setDownloadListener
+
+            val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
+            val request = DownloadManager.Request(Uri.parse(url)).apply {
+                setMimeType(mimeType)
+                addRequestHeader("Cookie", CookieManager.getInstance().getCookie(url) ?: "")
+                addRequestHeader("User-Agent", userAgent)
+                setTitle(fileName)
+                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                // From Android 10 the public Downloads folder needs no permission;
+                // before that, the app's own folder does not either.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+                } else {
+                    setDestinationInExternalFilesDir(
+                        this@MainActivity,
+                        Environment.DIRECTORY_DOWNLOADS,
+                        fileName,
+                    )
+                }
+            }
+
+            val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+            Toast.makeText(this, fileName, Toast.LENGTH_SHORT).show()
         }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
