@@ -32,12 +32,25 @@ export async function POST(request: Request) {
 
     let history: Array<{ role: 'user' | 'assistant'; content: string; createdAt: Date }> = [];
     if (body.conversationId) {
+      // Reading is scoped to the owner in the query, but the write at the end of
+      // this request is not, so ownership is settled once, up front, for both.
+      const owned = await prisma.conversation.findFirst({
+        where: { id: body.conversationId, project: { userId } },
+        select: { id: true },
+      });
+      if (!owned) {
+        return Response.json({ code: 'NOT_FOUND', message: 'Not found' }, { status: 404 });
+      }
+
+      // The most recent messages, oldest first. Taking the first 100 instead would
+      // mean that once a conversation outgrew 100 messages the model saw only its
+      // beginning and never what had just been said.
       const rows = await prisma.message.findMany({
-        where: { conversationId: body.conversationId, conversation: { project: { userId } } },
-        orderBy: { createdAt: 'asc' },
+        where: { conversationId: body.conversationId },
+        orderBy: { createdAt: 'desc' },
         take: 100,
       });
-      history = rows.map((r: { role: string; content: string; createdAt: Date }) => ({
+      history = rows.reverse().map((r: { role: string; content: string; createdAt: Date }) => ({
         role: r.role === 'assistant' ? 'assistant' : 'user',
         content: r.content,
         createdAt: r.createdAt,
@@ -87,35 +100,69 @@ export async function POST(request: Request) {
     }
 
     const encoder = new TextEncoder();
+    // Set when the reader goes away (stop button, closed tab or app). The loop
+    // then stops pulling from the provider instead of paying for words nobody reads.
+    let readerGone = false;
+
     const stream = new ReadableStream({
       async start(controller) {
         let full = '';
+        let failure: unknown;
+
+        // Sending to a reader that has already left throws; here that is not an error.
+        const send = (text: string) => {
+          try {
+            controller.enqueue(encoder.encode(text));
+          } catch {
+            readerGone = true;
+          }
+        };
+
         try {
           for await (const chunk of core().streamAnswer(decision)) {
+            if (readerGone) break;
             if (chunk.delta) {
               full += chunk.delta;
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ delta: chunk.delta })}\n\n`),
-              );
+              send(`data: ${JSON.stringify({ delta: chunk.delta })}\n\n`);
             }
             if (chunk.done) break;
           }
+        } catch (error) {
+          failure = error;
+        }
 
-          if (body.conversationId) {
+        // Keep whatever was said, including an answer cut short by the stop button,
+        // so the thread reads the same after a reload. A failure with nothing said
+        // leaves no trace, and the user simply asks again.
+        if (body.conversationId && full) {
+          try {
             await prisma.message.createMany({
               data: [
                 { conversationId: body.conversationId, role: 'user', content: body.message },
                 { conversationId: body.conversationId, role: 'assistant', content: full },
               ],
             });
+          } catch {
+            // A history write failing must not turn a delivered answer into an error.
           }
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-        } catch (error) {
-          const safe = error instanceof AppError ? error.toPublic() : { code: 'INTERNAL', message: 'Error' };
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: safe })}\n\n`));
-        } finally {
-          controller.close();
         }
+
+        if (failure) {
+          const safe =
+            failure instanceof AppError ? failure.toPublic() : { code: 'INTERNAL', message: 'Error' };
+          send(`data: ${JSON.stringify({ error: safe })}\n\n`);
+        } else {
+          send('data: [DONE]\n\n');
+        }
+
+        try {
+          controller.close();
+        } catch {
+          // Already closed by the reader leaving.
+        }
+      },
+      cancel() {
+        readerGone = true;
       },
     });
 
