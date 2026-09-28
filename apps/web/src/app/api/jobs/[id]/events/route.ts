@@ -41,10 +41,22 @@ export async function GET(
           });
           if (!job) return;
 
+          // Once the job has succeeded, say where its result is, so the progress
+          // screen can offer it for download right there.
+          const finished =
+            job.status === 'succeeded'
+              ? await prisma.artifactVersion.findFirst({
+                  where: { artifact: { projectId: job.projectId } },
+                  orderBy: { createdAt: 'desc' },
+                  select: { id: true, artifact: { select: { type: true } } },
+                })
+              : null;
+
           send({
             status: job.status,
             progress: job.progress,
             steps: job.steps.map((s: { stepKey: string; status: string }) => ({ stepKey: s.stepKey, status: s.status })),
+            ...(finished ? { result: { versionId: finished.id, type: finished.artifact.type } } : {}),
           });
 
           if (['succeeded', 'failed', 'cancelled'].includes(job.status)) {
