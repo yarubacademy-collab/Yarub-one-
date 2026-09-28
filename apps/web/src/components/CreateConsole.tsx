@@ -104,10 +104,13 @@ function quotaMessage(locale: Locale, action: string, planCode?: string): string
 export function CreateConsole({
   locale,
   withHistory = false,
+  builder,
   conversationId: initialConversationId,
   initialThread = [],
 }: {
   locale: Locale;
+  /** Set on the Websites and Games pages: every request there makes a file. */
+  builder?: 'website' | 'game';
   /** Chats are saved and listed. Off for Create, whose requests are not conversations. */
   withHistory?: boolean;
   /** The saved chat being resumed, when there is one. */
@@ -237,7 +240,7 @@ export function CreateConsole({
       const res = await fetch('/api/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request: message, locale }),
+        body: JSON.stringify({ request: message, locale, ...(builder ? { builder } : {}) }),
         signal: controller.signal,
       });
 
@@ -371,7 +374,7 @@ export function CreateConsole({
         ))}
 
         {question && <p className="y-card p-5">{question}</p>}
-        {job && <JobProgress jobId={job.jobId} steps={job.plan.steps} />}
+        {job && <JobProgress jobId={job.jobId} steps={job.plan.steps} locale={locale} />}
         {error && <p className="text-danger text-sm">{error}</p>}
 
         <div ref={bottomRef} />
