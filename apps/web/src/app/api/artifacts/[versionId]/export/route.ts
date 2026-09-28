@@ -19,7 +19,7 @@ export const runtime = 'nodejs';
  * skip one at read time.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ versionId: string }> },
 ) {
   try {
@@ -48,16 +48,47 @@ export async function GET(
     const meta = (version.meta ?? {}) as { files?: string[]; contents?: Record<string, string> };
     const files = meta.files ?? ['index.html'];
 
-    const zip = new JSZip();
-    for (const rawPath of files) {
+    // Files made without a storage service are kept inside the version record
+    // itself; anything else is read from object storage as before.
+    const readFile = async (rawPath: string) => {
       const path = normalizePath(rawPath);
-      // Files made without a storage service are kept inside the version record
-      // itself; anything else is read from object storage as before.
       const kept = meta.contents?.[rawPath];
       const bytes =
         kept !== undefined
           ? new TextEncoder().encode(kept)
           : await storage.get(`${version.storageKey}/${path}`);
+      return { path, bytes };
+    };
+
+    // A single file, which is the usual case for a website or a game, is handed
+    // over as itself: one tap, one file, rather than a zip a phone must unpack.
+    // `?format=zip` still asks for the archive.
+    const wantsZip = new URL(request.url).searchParams.get('format') === 'zip';
+    if (files.length === 1 && !wantsZip) {
+      const { path, bytes } = await readFile(files[0]!);
+      const ext = (path.split('.').pop() ?? '').toLowerCase();
+      const safeExt = /^[a-z0-9]{1,8}$/.test(ext) ? ext : 'txt';
+
+      await prisma.auditLog.create({
+        data: { userId, action: 'artifact.export', target: versionId },
+      });
+
+      return new Response(toBody(bytes), {
+        headers: {
+          'Content-Type': MIME_BY_EXT[safeExt] ?? 'application/octet-stream',
+          'Content-Disposition': `attachment; filename="${safeFilename(version.artifact.title)}-v${version.version}.${safeExt}"`,
+          'X-Content-Type-Options': 'nosniff',
+          // It is a download, never a page; if anything did render it, it would
+          // still have no access to this site.
+          'Content-Security-Policy': "sandbox; default-src 'none'",
+          'Cache-Control': 'private, no-store',
+        },
+      });
+    }
+
+    const zip = new JSZip();
+    for (const rawPath of files) {
+      const { path, bytes } = await readFile(rawPath);
       zip.file(path, bytes);
     }
 
@@ -77,6 +108,16 @@ export async function GET(
     return errorResponse(error);
   }
 }
+
+const MIME_BY_EXT: Record<string, string> = {
+  html: 'text/html; charset=utf-8',
+  css: 'text/css; charset=utf-8',
+  js: 'text/javascript; charset=utf-8',
+  json: 'application/json',
+  txt: 'text/plain; charset=utf-8',
+  md: 'text/markdown; charset=utf-8',
+  svg: 'image/svg+xml',
+};
 
 /**
  * Arabic and Urdu titles are normal here, but they break naive Content-
