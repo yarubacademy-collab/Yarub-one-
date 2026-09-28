@@ -15,6 +15,7 @@ import {
 } from '@yarub/billing';
 import { AppError, type Capability } from '@yarub/shared';
 import { prisma } from '@yarub/db';
+import { assertNotCoolingDown } from './cooldowns';
 
 /**
  * The server-side entitlement gate.
@@ -214,6 +215,17 @@ export async function enforcePlan(input: {
       count,
     });
     if (!decision.allowed) throw new QuotaExceededError(decision, entitlements.planCode);
+  }
+
+  // Quota first: an exhausted allowance is the more basic answer. Only then
+  // the pace limit, which says "not yet" rather than "no more".
+  for (const action of counts.keys()) {
+    await assertNotCoolingDown({
+      userId: input.userId,
+      action,
+      planCode: entitlements.planCode,
+      limits: entitlements.limits,
+    });
   }
 
   return entitlements;
