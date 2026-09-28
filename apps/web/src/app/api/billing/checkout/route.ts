@@ -4,6 +4,7 @@ import { loadConfig } from '@yarub/config';
 import { requireUserId } from '../../../../lib/session';
 import { enforceRateLimit } from '../../../../lib/rate-limit';
 import { payments } from '../../../../lib/payments';
+import { checkoutPrice, hasNeverSubscribed } from '../../../../lib/checkout-price';
 import { errorResponse } from '../../chat/stream/route';
 
 export const runtime = 'nodejs';
@@ -47,10 +48,9 @@ export async function POST(request: Request) {
       return Response.json({ code: 'NOT_FOUND', message: 'Plan not available' }, { status: 404 });
     }
 
-    const promoActive =
-      plan.promoPriceMinor !== null &&
-      (!plan.promoEndsAt || plan.promoEndsAt > new Date());
-    const priceMinor = promoActive ? plan.promoPriceMinor! : plan.priceMinor;
+    // A first-ever purchase may carry a one-time introductory price. Whether it
+    // does is decided here from the account's own history, never from the request.
+    const { priceMinor } = checkoutPrice(plan, await hasNeverSubscribed(userId));
 
     if (priceMinor <= 0) {
       // An unpriced plan means the owner has not finished configuring it.
