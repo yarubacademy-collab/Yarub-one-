@@ -2,7 +2,11 @@
   "name": "@yarub/worker",
   "version": "0.1.0",
   "type": "module",
-  "scripts": { "dev": "tsx watch src/index.ts", "build": "tsc -p tsconfig.json", "start": "node dist/index.js" },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
   "dependencies": {
     "@yarub/ai-core": "workspace:*",
     "@yarub/providers": "workspace:*",
@@ -11,7 +15,13 @@
     "@yarub/db": "workspace:*",
     "@yarub/storage": "workspace:*",
     "bullmq": "^5.13.0",
-    "ioredis": "^5.4.1"
+    "ioredis": "^5.4.1",
+    "@yarub/billing": "workspace:*",
+    "@yarub/sandbox": "workspace:*",
+    "@yarub/documents": "workspace:*"
   },
-  "devDependencies": { "tsx": "^4.19.0", "typescript": "^5.6.0" }
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
 }
