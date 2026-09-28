@@ -10,6 +10,12 @@ interface StepView {
   status?: string;
 }
 
+const DOWNLOAD_TEXT: Record<string, { download: string; hint: string }> = {
+  en: { download: 'Download', hint: 'When it has downloaded, open the file in your browser.' },
+  ar: { download: 'تنزيل', hint: 'بعد التنزيل، افتح الملف في المتصفح.' },
+  ur: { download: 'ڈاؤن لوڈ کریں', hint: 'ڈاؤن لوڈ ہونے کے بعد فائل کو براؤزر میں کھولیں۔' },
+};
+
 const DOT: Record<string, string> = {
   pending: 'bg-edge',
   running: 'bg-amber animate-pulse',
@@ -25,11 +31,20 @@ const DOT: Record<string, string> = {
  * Step titles arrive already localized from the plan. No model name, token
  * count or provider error is ever shown here — only what is being made.
  */
-export function JobProgress({ jobId, steps }: { jobId: string; steps: StepView[] }) {
+export function JobProgress({
+  jobId,
+  steps,
+  locale = 'en',
+}: {
+  jobId: string;
+  steps: StepView[];
+  locale?: string;
+}) {
   const t = useTranslations('job');
   const [status, setStatus] = useState('running');
   const [progress, setProgress] = useState(0);
   const [stepStatus, setStepStatus] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<{ versionId: string; type: string } | null>(null);
 
   useEffect(() => {
     const source = new EventSource(`/api/jobs/${jobId}/events`);
@@ -38,10 +53,12 @@ export function JobProgress({ jobId, steps }: { jobId: string; steps: StepView[]
         status: string;
         progress: number;
         steps: Array<{ stepKey: string; status: string }>;
+        result?: { versionId: string; type: string };
       };
       setStatus(data.status);
       setProgress(data.progress);
       setStepStatus(Object.fromEntries(data.steps.map((s) => [s.stepKey, s.status])));
+      if (data.result) setResult(data.result);
       if (['succeeded', 'failed', 'cancelled'].includes(data.status)) source.close();
     };
     source.onerror = () => source.close();
@@ -71,6 +88,22 @@ export function JobProgress({ jobId, steps }: { jobId: string; steps: StepView[]
           );
         })}
       </ol>
+
+      {result && (
+        <div className="mt-6 pt-5 border-t border-edge">
+          <a
+            href={`/api/artifacts/${result.versionId}/export`}
+            className="y-primary inline-block"
+          >
+            {(DOWNLOAD_TEXT[locale] ?? DOWNLOAD_TEXT.en!).download}
+          </a>
+          {(result.type === 'website' || result.type === 'game') && (
+            <p className="mt-3 text-sm text-ink-muted">
+              {(DOWNLOAD_TEXT[locale] ?? DOWNLOAD_TEXT.en!).hint}
+            </p>
+          )}
+        </div>
+      )}
 
       {!['succeeded', 'failed', 'cancelled'].includes(status) && (
         <button onClick={cancel} className="mt-6 text-sm text-danger hover:underline">
