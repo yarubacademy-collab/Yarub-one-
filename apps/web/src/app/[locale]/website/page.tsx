@@ -19,5 +19,5 @@ export default async function SectionPage({ params }: { params: Promise<{ locale
   const status = report.find((r) => r.capability === CAPABILITY)?.status;
 
   if (status === 'not_configured') return <NotConfigured capability={CAPABILITY} />;
-  return <CreateConsole locale={locale as Locale} />;
+  return <CreateConsole locale={locale as Locale} builder="website" />;
 }
