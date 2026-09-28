@@ -128,6 +128,10 @@ export async function assertNotCoolingDown(input: {
   limits: PlanLimits;
   now?: Date;
 }): Promise<void> {
+  // Testing only: lets the owner try the same thing repeatedly instead of waiting
+  // out a pause meant for customers. Never set this on a live, paying site.
+  if (process.env.DISABLE_COOLDOWNS === '1') return;
+
   const rule = ruleFor(input.planCode, input.action, input.limits);
   if (!rule) return;
 
