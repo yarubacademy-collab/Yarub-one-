@@ -30,6 +30,63 @@ interface SpeechRecognitionLike {
 
 const RECOGNITION_LANG: Record<Locale, string> = { en: 'en-US', ar: 'ar-SA', ur: 'ur-PK' };
 
+const ACTION_LABEL: Record<Locale, Record<string, string>> = {
+  en: { image: 'image', video: 'video', website: 'website', game: 'game', document: 'document' },
+  ar: { image: 'صورة', video: 'فيديو', website: 'موقع', game: 'لعبة', document: 'مستند' },
+  ur: { image: 'تصویر', video: 'ویڈیو', website: 'ویب سائٹ', game: 'گیم', document: 'دستاویز' },
+};
+
+/** At most the two largest non-zero units: "1 day 3 hours", "4 hours 12 minutes", "9 minutes". */
+function formatWait(seconds: number, locale: Locale): string {
+  const total = Math.max(1, Math.ceil(seconds / 60));
+  const d = Math.floor(total / 1440);
+  const h = Math.floor((total % 1440) / 60);
+  const m = total % 60;
+
+  const unit = (n: number, kind: 'day' | 'hour' | 'minute'): string => {
+    if (locale === 'ar') return `${n} ${{ day: 'يوم', hour: 'ساعة', minute: 'دقيقة' }[kind]}`;
+    if (locale === 'ur') {
+      const word = { day: 'دن', hour: n === 1 ? 'گھنٹہ' : 'گھنٹے', minute: 'منٹ' }[kind];
+      return `${n} ${word}`;
+    }
+    return `${n} ${kind}${n === 1 ? '' : 's'}`;
+  };
+
+  const parts: string[] = [];
+  if (d > 0) {
+    parts.push(unit(d, 'day'));
+    if (h > 0) parts.push(unit(h, 'hour'));
+  } else if (h > 0) {
+    parts.push(unit(h, 'hour'));
+    if (m > 0) parts.push(unit(m, 'minute'));
+  } else {
+    parts.push(unit(m, 'minute'));
+  }
+  return parts.join(' ');
+}
+
+/** Shown when a creation is paused for now — chat is never affected. */
+function cooldownMessage(locale: Locale, action: string, seconds: number): string {
+  const label = ACTION_LABEL[locale][action] ?? action;
+  const wait = formatWait(seconds, locale);
+  if (locale === 'ar') return `يرجى الانتظار ${wait} قبل الإنشاء مرة أخرى (${label}). الدردشة متاحة دائمًا.`;
+  if (locale === 'ur') return `${label} دوبارہ بنانے کے لیے ${wait} انتظار کریں۔ چیٹ ہمیشہ دستیاب ہے۔`;
+  return `Please wait ${wait} before creating another ${label}. Chat is still available.`;
+}
+
+/** Shown when the period's allowance is used up. Only free users are pointed at Premium. */
+function quotaMessage(locale: Locale, action: string, planCode?: string): string {
+  const label = ACTION_LABEL[locale][action] ?? action;
+  const upgrade = planCode === 'free';
+  if (locale === 'ar') {
+    return `لقد وصلت إلى حد (${label}) لهذه الفترة.${upgrade ? ' قم بالترقية إلى بريميم للوصول الكامل.' : ''}`;
+  }
+  if (locale === 'ur') {
+    return `اس مدت کے لیے آپ کی ${label} کی حد پوری ہو چکی ہے۔${upgrade ? ' مکمل رسائی کے لیے پریمیم حاصل کریں۔' : ''}`;
+  }
+  return `You've reached your ${label} limit for this period.${upgrade ? ' Get Premium for full access.' : ''}`;
+}
+
 /**
  * The primary entry point: one box, any request, any of the three languages.
  *
@@ -124,9 +181,18 @@ export function CreateConsole({ locale }: { locale: Locale }) {
       });
 
       if (!res.ok) {
-        const body = (await res.json()) as { code?: string };
+        const body = (await res.json()) as {
+          code?: string;
+          action?: string;
+          retryAfterSeconds?: number;
+          planCode?: string;
+        };
         setError(
-          body.code === 'RATE_LIMITED' ? tError('rateLimited')
+          body.code === 'COOLDOWN' && body.action && body.retryAfterSeconds
+            ? cooldownMessage(locale, body.action, body.retryAfterSeconds)
+          : body.code === 'QUOTA_EXCEEDED' && body.action
+            ? quotaMessage(locale, body.action, body.planCode)
+          : body.code === 'RATE_LIMITED' ? tError('rateLimited')
           : body.code === 'NOT_CONFIGURED' ? tError('notConfigured')
           : body.code === 'UNAUTHORIZED' ? tError('unauthorized')
           : tError('generic'),
