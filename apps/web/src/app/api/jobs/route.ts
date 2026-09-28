@@ -3,6 +3,7 @@ import { after } from 'next/server';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { LOCALES, AppError } from '@yarub/shared';
+import { validateUserPrompt } from '@yarub/ai-core';
 import { prisma } from '@yarub/db';
 import { loadConfig } from '@yarub/config';
 import { core } from '../../../lib/core';
@@ -11,6 +12,7 @@ import { enforceRateLimit } from '../../../lib/rate-limit';
 import { errorResponse } from '../chat/stream/route';
 import { QuotaExceededError, enforcePlan, resolveEntitlements } from '../../../lib/entitlements';
 import { CooldownError } from '../../../lib/cooldowns';
+import { builderPlan } from '../../../lib/builder-plan';
 
 export const runtime = 'nodejs';
 // Long enough for a website or game to finish when jobs run in this request (see below).
@@ -23,6 +25,8 @@ const bodySchema = z.object({
   request: z.string().min(1).max(24_000),
   locale: z.enum(LOCALES),
   projectId: z.string().optional(),
+  /** Sent by the Websites and Games pages, which always make a file. */
+  builder: z.enum(['website', 'game']).optional(),
 });
 
 /**
@@ -37,7 +41,19 @@ export async function POST(request: Request) {
     await enforceRateLimit(`jobs:${userId}`, 10);
 
     const body = bodySchema.parse(await request.json());
-    const decision = await core().decide({ rawRequest: body.request, locale: body.locale });
+    // A builder page always makes a downloadable project. Left to the classifier, a
+    // request like "make a calculator site" is often taken for an ordinary question
+    // and answered as text: code in a chat, not a file.
+    const decision = body.builder
+      ? {
+          kind: 'project' as const,
+          plan: builderPlan(
+            body.builder,
+            validateUserPrompt(body.request, { maxPromptChars: loadConfig().MAX_PROMPT_CHARS }),
+            body.locale,
+          ),
+        }
+      : await core().decide({ rawRequest: body.request, locale: body.locale });
 
     if (decision.kind !== 'project') {
       return Response.json({ kind: decision.kind }, { status: 200 });
