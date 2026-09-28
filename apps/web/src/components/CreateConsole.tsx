@@ -1,10 +1,12 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ArrowUp, Square, Mic, Paperclip } from 'lucide-react';
+import { ArrowUp, Square, Mic, Paperclip, PanelLeft, SquarePen } from 'lucide-react';
 import type { Locale } from '@yarub/shared';
 import { JobProgress } from './JobProgress';
+import { ChatHistoryDrawer, HISTORY_TEXT } from './ChatHistoryDrawer';
 
 interface PlanView {
   title: string;
@@ -99,14 +101,31 @@ function quotaMessage(locale: Locale, action: string, planCode?: string): string
  * to the bottom of the viewport, not the bottom of the page content, so it
  * cannot drift or resize as the thread above it grows.
  */
-export function CreateConsole({ locale }: { locale: Locale }) {
+export function CreateConsole({
+  locale,
+  withHistory = false,
+  conversationId: initialConversationId,
+  initialThread = [],
+}: {
+  locale: Locale;
+  /** Chats are saved and listed. Off for Create, whose requests are not conversations. */
+  withHistory?: boolean;
+  /** The saved chat being resumed, when there is one. */
+  conversationId?: string;
+  /** Its messages, loaded on the server so the page opens already filled. */
+  initialThread?: ThreadEntry[];
+}) {
   const t = useTranslations('create');
   const tError = useTranslations('error');
+  const router = useRouter();
+  const historyText = HISTORY_TEXT[locale];
 
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
-  const [thread, setThread] = useState<ThreadEntry[]>([]);
+  const [thread, setThread] = useState<ThreadEntry[]>(initialThread);
+  const [conversationId, setConversationId] = useState<string | undefined>(initialConversationId);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [question, setQuestion] = useState('');
   const [job, setJob] = useState<{ jobId: string; plan: PlanView } | null>(null);
   const [error, setError] = useState('');
@@ -126,6 +145,48 @@ export function CreateConsole({ locale }: { locale: Locale }) {
   /** Cancels the in-flight request. Whatever text has streamed in stays in the thread. */
   function stop() {
     abortRef.current?.abort();
+  }
+
+  /** Starts a fresh, empty chat in place, with no page load, so it is instant. */
+  function newChat() {
+    stop();
+    setThread([]);
+    setInput('');
+    setQuestion('');
+    setJob(null);
+    setError('');
+    setConversationId(undefined);
+    setDrawerOpen(false);
+    window.history.replaceState(null, '', `/${locale}/chat`);
+  }
+
+  function openChat(id: string) {
+    setDrawerOpen(false);
+    if (id === conversationId) return;
+    stop();
+    router.push(`/${locale}/chat/${id}`);
+  }
+
+  /**
+   * The saved chat this message belongs to, created on first use. If saving is
+   * not possible the chat still works; it just is not kept.
+   */
+  async function ensureConversation(firstMessage: string, signal: AbortSignal) {
+    if (!withHistory) return undefined;
+    if (conversationId) return conversationId;
+
+    const res = await fetch('/api/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: firstMessage.replace(/\s+/g, ' ').slice(0, 60), locale }),
+      signal,
+    });
+    if (!res.ok) return undefined;
+
+    const { id } = (await res.json()) as { id: string };
+    setConversationId(id);
+    window.history.replaceState(null, '', `/${locale}/chat/${id}`);
+    return id;
   }
 
   /** Speech-to-text for the input box. Silently does nothing where the browser lacks support. */
@@ -208,7 +269,8 @@ export function CreateConsole({ locale }: { locale: Locale }) {
       }
 
       // Simple request: stream the answer instead of creating a project.
-      await streamAnswer(message, controller.signal);
+      const savedId = await ensureConversation(message, controller.signal);
+      await streamAnswer(message, controller.signal, savedId);
     } catch (err) {
       // A user-initiated stop throws AbortError; that is success, not failure.
       if (!(err instanceof DOMException && err.name === 'AbortError')) {
@@ -219,11 +281,11 @@ export function CreateConsole({ locale }: { locale: Locale }) {
     }
   }
 
-  async function streamAnswer(message: string, signal: AbortSignal) {
+  async function streamAnswer(message: string, signal: AbortSignal, savedId?: string) {
     const res = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, locale }),
+      body: JSON.stringify({ message, locale, conversationId: savedId }),
       signal,
     });
 
@@ -273,6 +335,27 @@ export function CreateConsole({ locale }: { locale: Locale }) {
 
   return (
     <div className="max-w-3xl mx-auto p-6 md:p-10 pb-40">
+      {withHistory && (
+        <div className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            aria-label={historyText.chats}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-ink-muted hover:bg-parchment-raised transition-colors"
+          >
+            <PanelLeft className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={newChat}
+            aria-label={historyText.newChat}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-ink-muted hover:bg-parchment-raised transition-colors"
+          >
+            <SquarePen className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       <h1 className="text-2xl md:text-3xl font-bold mb-6">{t('heading')}</h1>
 
       <div className="space-y-4">
@@ -353,6 +436,20 @@ export function CreateConsole({ locale }: { locale: Locale }) {
           </div>
         </div>
       </div>
+
+      {withHistory && (
+        <ChatHistoryDrawer
+          locale={locale}
+          open={drawerOpen}
+          activeId={conversationId}
+          onClose={() => setDrawerOpen(false)}
+          onNewChat={newChat}
+          onOpenChat={openChat}
+          onDeleted={(id) => {
+            if (id === conversationId) newChat();
+          }}
+        />
+      )}
     </div>
   );
 }
