@@ -7,5 +7,5 @@ import { CreateConsole } from '../../../components/CreateConsole';
  */
 export default async function ChatPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  return <CreateConsole locale={locale as Locale} />;
+  return <CreateConsole locale={locale as Locale} withHistory />;
 }
