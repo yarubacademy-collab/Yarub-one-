@@ -13,6 +13,7 @@ const planSchema = z.object({
   currency: z.string().length(3),
   promoPriceMinor: z.number().int().min(0).optional(),
   promoEndsAt: z.string().datetime().optional(),
+  introPriceMinor: z.number().int().min(0).optional(),
   intervalDays: z.number().int().min(1).max(400),
   imageQuota: z.number().int().min(0),
   videoQuota: z.number().int().min(0),
@@ -38,8 +39,13 @@ export async function PUT(request: Request) {
     const adminId = await requireAdmin();
     const body = planSchema.parse(await request.json());
 
-    const { code, promoEndsAt, ...rest } = body;
-    const data = { ...rest, ...(promoEndsAt ? { promoEndsAt: new Date(promoEndsAt) } : {}) };
+    const { code, promoEndsAt, introPriceMinor, ...rest } = body;
+    const data = {
+      ...rest,
+      // Zero or blank means "no first-purchase offer", stored as null.
+      introPriceMinor: introPriceMinor && introPriceMinor > 0 ? introPriceMinor : null,
+      ...(promoEndsAt ? { promoEndsAt: new Date(promoEndsAt) } : {}),
+    };
 
     const plan = await prisma.plan.upsert({
       where: { code },
