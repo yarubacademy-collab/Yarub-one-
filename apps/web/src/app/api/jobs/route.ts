@@ -9,6 +9,7 @@ import { requireUserId } from '../../../lib/session';
 import { enforceRateLimit } from '../../../lib/rate-limit';
 import { errorResponse } from '../chat/stream/route';
 import { QuotaExceededError, enforcePlan, resolveEntitlements } from '../../../lib/entitlements';
+import { CooldownError } from '../../../lib/cooldowns';
 
 export const runtime = 'nodejs';
 
@@ -60,6 +61,18 @@ export async function POST(request: Request) {
             upgradeUrl: `/${body.locale}/pricing`,
           },
           { status: 402 },
+        );
+      }
+      if (error instanceof CooldownError) {
+        return Response.json(
+          {
+            code: 'COOLDOWN',
+            action: error.action,
+            retryAfterSeconds: error.retryAfterSeconds,
+            planCode: error.planCode,
+            upgradeUrl: `/${body.locale}/pricing`,
+          },
+          { status: 429 },
         );
       }
       throw error;
