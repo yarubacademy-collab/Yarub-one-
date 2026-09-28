@@ -11,6 +11,8 @@ interface PlanRow {
   currency: string;
   promoPriceMinor: number | null;
   promoEndsAt: string | null;
+  /** Present only for an account that can still use the first-purchase price. */
+  introPriceMinor: number | null;
   intervalDays: number;
   imageQuota: number;
   videoQuota: number;
@@ -35,6 +37,13 @@ function tagline(code: string, locale: string): string {
   if (locale === 'ar') return 'احصل على بريميوم للوصول الكامل';
   if (locale === 'ur') return 'مکمل رسائی کے لیے پریمیم حاصل کریں';
   return 'Get Premium for full access';
+}
+
+/** "First month" (or "first year" for a yearly plan), in the visitor's language. */
+function introLabel(locale: string, yearly: boolean): string {
+  if (locale === 'ar') return yearly ? 'السنة الأولى' : 'الشهر الأول';
+  if (locale === 'ur') return yearly ? 'پہلا سال' : 'پہلا مہینہ';
+  return yearly ? 'First year' : 'First month';
 }
 
 /**
@@ -104,13 +113,24 @@ export function PricingTable({ locale }: { locale: string }) {
 
   if (!data) return null;
 
-  const price = (plan: PlanRow) => {
+  const effectiveMinor = (plan: PlanRow) => {
     const promoActive =
       plan.promoPriceMinor !== null &&
       (!plan.promoEndsAt || new Date(plan.promoEndsAt) > new Date());
-    const minor = promoActive ? plan.promoPriceMinor! : plan.priceMinor;
+    return promoActive ? plan.promoPriceMinor! : plan.priceMinor;
+  };
+
+  const price = (plan: PlanRow) => {
+    const minor = effectiveMinor(plan);
     if (minor <= 0) return t('priceUnavailable');
     return `${(minor / 100).toFixed(2)} ${plan.currency}`;
+  };
+
+  /** The one-time first-purchase price, only when it is really lower than the regular one. */
+  const introOffer = (plan: PlanRow) => {
+    const intro = plan.introPriceMinor;
+    if (intro === null || intro <= 0 || intro >= effectiveMinor(plan)) return null;
+    return `${(intro / 100).toFixed(2)} ${plan.currency}`;
   };
 
   return (
@@ -120,6 +140,7 @@ export function PricingTable({ locale }: { locale: string }) {
       <div className="grid gap-4 md:grid-cols-3">
         {data.plans.map((plan) => {
           const current = data.subscription?.planCode === plan.code;
+          const intro = introOffer(plan);
           return (
             <section
               key={plan.id}
@@ -131,6 +152,12 @@ export function PricingTable({ locale }: { locale: string }) {
               <p className="text-xs text-ink-muted mb-4">
                 {plan.intervalDays >= 365 ? t('perYear') : t('perMonth')}
               </p>
+
+              {intro && !current && (
+                <p className="text-sm font-semibold text-amber mb-4">
+                  {introLabel(locale, plan.intervalDays >= 365)}: <span className="numeral">{intro}</span>
+                </p>
+              )}
 
               {/* Deliberately no quotas here: what a plan allows is not advertised,
                   only what it is for. The numbers live in the Plan table and are
