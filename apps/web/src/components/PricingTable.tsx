@@ -25,6 +25,18 @@ interface SubscriptionResponse {
   paymentStatus: string;
 }
 
+/** One line per plan, in the visitor's language. Names no quantities. */
+function tagline(code: string, locale: string): string {
+  if (code === 'free') {
+    if (locale === 'ar') return 'الدردشة مجانية دائمًا';
+    if (locale === 'ur') return 'چیٹ ہمیشہ مفت ہے';
+    return 'Chat is always free';
+  }
+  if (locale === 'ar') return 'احصل على بريميوم للوصول الكامل';
+  if (locale === 'ur') return 'مکمل رسائی کے لیے پریمیم حاصل کریں';
+  return 'Get Premium for full access';
+}
+
 /**
  * Pricing.
  *
@@ -34,7 +46,6 @@ interface SubscriptionResponse {
  */
 export function PricingTable({ locale }: { locale: string }) {
   const t = useTranslations('plan');
-  const tMeter = useTranslations('meter');
 
   const [data, setData] = useState<SubscriptionResponse | null>(null);
   const [notice, setNotice] = useState('');
@@ -121,21 +132,10 @@ export function PricingTable({ locale }: { locale: string }) {
                 {plan.intervalDays >= 365 ? t('perYear') : t('perMonth')}
               </p>
 
-              <ul className="text-sm space-y-1 flex-1">
-                <li>
-                  {tMeter('image')} <span className="numeral">{plan.imageQuota}</span>
-                </li>
-                <li>
-                  {tMeter('video')} <span className="numeral">{plan.videoQuota}</span> ·{' '}
-                  <span className="numeral">{plan.maxVideoSeconds}s</span>
-                </li>
-                <li>
-                  {tMeter('website')} <span className="numeral">{plan.websiteQuota}</span>
-                </li>
-                <li>
-                  {tMeter('game')} <span className="numeral">{plan.gameQuota}</span>
-                </li>
-              </ul>
+              {/* Deliberately no quotas here: what a plan allows is not advertised,
+                  only what it is for. The numbers live in the Plan table and are
+                  enforced server-side, but are not shown on this page. */}
+              <p className="text-sm flex-1">{tagline(plan.code, locale)}</p>
 
               <div className="mt-5">
                 {current ? (
