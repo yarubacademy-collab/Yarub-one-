@@ -17,7 +17,15 @@ export interface OpenAICompatibleOptions {
   costWeight: number;
 }
 
-const TEXT_CAPABILITIES: readonly Capability[] = ['text.generate', 'text.reason', 'text.translate'];
+// `code.generate` is served by the same language model as text. It was missing from
+// this list, so no provider advertised it and every website or game step was
+// skipped as "not configured" no matter how the model was set up.
+const TEXT_CAPABILITIES: readonly Capability[] = [
+  'text.generate',
+  'text.reason',
+  'text.translate',
+  'code.generate',
+];
 
 /**
  * Adapter for any endpoint speaking the widely-used /chat/completions shape.
