@@ -45,13 +45,19 @@ export async function GET(
       secretAccessKey: config.S3_SECRET_ACCESS_KEY,
     });
 
-    const meta = (version.meta ?? {}) as { files?: string[] };
+    const meta = (version.meta ?? {}) as { files?: string[]; contents?: Record<string, string> };
     const files = meta.files ?? ['index.html'];
 
     const zip = new JSZip();
     for (const rawPath of files) {
       const path = normalizePath(rawPath);
-      const bytes = await storage.get(`${version.storageKey}/${path}`);
+      // Files made without a storage service are kept inside the version record
+      // itself; anything else is read from object storage as before.
+      const kept = meta.contents?.[rawPath];
+      const bytes =
+        kept !== undefined
+          ? new TextEncoder().encode(kept)
+          : await storage.get(`${version.storageKey}/${path}`);
       zip.file(path, bytes);
     }
 
