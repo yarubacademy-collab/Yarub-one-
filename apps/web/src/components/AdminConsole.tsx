@@ -10,6 +10,7 @@ interface PlanRow {
   active: boolean;
   priceMinor: number;
   currency: string;
+  introPriceMinor: number | null;
   intervalDays: number;
   imageQuota: number;
   videoQuota: number;
@@ -21,6 +22,7 @@ interface PlanRow {
 
 const NUMERIC_FIELDS = [
   'priceMinor',
+  'introPriceMinor',
   'imageQuota',
   'videoQuota',
   'maxVideoSeconds',
@@ -52,7 +54,11 @@ export function AdminConsole({
 
   function update(code: string, field: string, value: string) {
     setPlans((prev) =>
-      prev.map((p) => (p.code === code ? { ...p, [field]: Number(value) || 0 } : p)),
+      prev.map((p) =>
+        p.code === code
+          ? { ...p, [field]: field === 'currency' ? value.toUpperCase().slice(0, 3) : Number(value) || 0 }
+          : p,
+      ),
     );
   }
 
@@ -69,6 +75,7 @@ export function AdminConsole({
           active: plan.active,
           priceMinor: plan.priceMinor,
           currency: plan.currency,
+          introPriceMinor: plan.introPriceMinor ?? 0,
           intervalDays: plan.intervalDays,
           imageQuota: plan.imageQuota,
           videoQuota: plan.videoQuota,
@@ -105,14 +112,28 @@ export function AdminConsole({
             <h3 className="font-semibold mb-4">{tPlan(plan.code as 'free')}</h3>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <label className="text-xs">
+                <span className="text-ink-muted">currency (3 letters)</span>
+                <input
+                  dir="ltr"
+                  type="text"
+                  maxLength={3}
+                  value={plan.currency}
+                  onChange={(e) => update(plan.code, 'currency', e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-edge bg-parchment px-2 py-1.5 uppercase outline-none focus:border-amber"
+                />
+              </label>
+
               {NUMERIC_FIELDS.map((field) => (
                 <label key={field} className="text-xs">
-                  <span className="text-ink-muted">{field}</span>
+                  <span className="text-ink-muted">
+                    {field === 'introPriceMinor' ? 'introPriceMinor (first purchase only, 0 = none)' : field}
+                  </span>
                   <input
                     dir="ltr"
                     type="number"
                     min={0}
-                    value={plan[field]}
+                    value={plan[field] ?? 0}
                     onChange={(e) => update(plan.code, field, e.target.value)}
                     className="mt-1 w-full rounded-lg border border-edge bg-parchment px-2 py-1.5 numeral outline-none focus:border-amber"
                   />
