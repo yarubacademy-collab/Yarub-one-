@@ -7,6 +7,7 @@ import { ArrowUp, Square, Mic, Paperclip, PanelLeft, SquarePen } from 'lucide-re
 import type { Locale } from '@yarub/shared';
 import { JobProgress } from './JobProgress';
 import { ChatHistoryDrawer, HISTORY_TEXT } from './ChatHistoryDrawer';
+import { BuilderHistoryDrawer } from './BuilderHistoryDrawer';
 
 interface PlanView {
   title: string;
@@ -129,6 +130,7 @@ export function CreateConsole({
   const [thread, setThread] = useState<ThreadEntry[]>(initialThread);
   const [conversationId, setConversationId] = useState<string | undefined>(initialConversationId);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [builderDrawerOpen, setBuilderDrawerOpen] = useState(false);
   const [question, setQuestion] = useState('');
   const [job, setJob] = useState<{ jobId: string; plan: PlanView } | null>(null);
   const [error, setError] = useState('');
@@ -268,6 +270,11 @@ export function CreateConsole({
 
       if (data.kind === 'project') {
         setJob({ jobId: data.jobId, plan: data.plan });
+        if (builder) {
+          // A builder page's own submission always makes a project; the drawer
+          // is opened to it so finishing is seen, not just assumed.
+          setBuilderDrawerOpen(true);
+        }
         return;
       }
 
@@ -359,6 +366,18 @@ export function CreateConsole({
         </div>
       )}
 
+      {builder && (
+        <div className="flex justify-end mb-4">
+          <button
+            type="button"
+            onClick={() => setBuilderDrawerOpen(true)}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-ink-muted hover:bg-parchment-raised transition-colors"
+          >
+            <PanelLeft className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       <h1 className="text-2xl md:text-3xl font-bold mb-6">{t('heading')}</h1>
 
       <div className="space-y-4">
@@ -439,6 +458,15 @@ export function CreateConsole({
           </div>
         </div>
       </div>
+
+      {builder && (
+        <BuilderHistoryDrawer
+          locale={locale}
+          builder={builder}
+          open={builderDrawerOpen}
+          onClose={() => setBuilderDrawerOpen(false)}
+        />
+      )}
 
       {withHistory && (
         <ChatHistoryDrawer
