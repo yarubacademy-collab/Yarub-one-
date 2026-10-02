@@ -1,7 +1,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.YarubOne" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:statusBarColor">@color/parchment</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <!-- false = light (white) status bar icons, correct for the dark
+             background parchment now is. On API 35+ the system draws edge to
+             edge regardless of statusBarColor, so the WebView's own dark page
+             sits behind the status bar either way — icon color is what
+             actually has to match, not this color value. -->
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <item name="android:windowBackground">@color/parchment</item>
     </style>
 
