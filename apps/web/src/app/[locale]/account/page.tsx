@@ -57,12 +57,6 @@ export default async function AccountPage({ params }: { params: Promise<{ locale
         <span className="numeral">{entitlements.period.end.toISOString().slice(0, 10)}</span>
       </p>
 
-      {entitlements.planCode === 'free' && (
-        <Link href={`/${locale}/pricing`} className="y-primary inline-block">
-          {t('upgrade')}
-        </Link>
-      )}
-
       <UsagePanel />
     </div>
   );
