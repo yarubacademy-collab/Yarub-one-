@@ -19,20 +19,20 @@
   html[lang='en'] body { font-family: var(--font-latin), system-ui, sans-serif; line-height: 1.6; }
 
   body {
-    /* The academy's own logo, fixed and very faint, under a near-opaque dark
-       layer: in CSS, the first background-image listed paints on top, so the
-       97.5%-opaque overlay here is what keeps text everywhere fully readable
-       — including the chat's own transparent answer bubbles, where the
-       logo's bright, detailed background would otherwise show through too
-       strongly and fight with the text sitting on top of it. The 2.5% still
-       let through reads as a watermark, not as a second thing to read. */
+    /* The academy's own logo, large and fixed behind everything. This file
+       (academy-logo-watermark.png) is a transparent cutout of the original —
+       its white background removed — made for exactly this use: the mark
+       alone, with nothing square or white around it, sitting directly on the
+       page's own dark color. The soft dark overlay above it is much lighter
+       than when the plain JPEG was used here, because there is no white box
+       left to tame — only the gold and green of the mark itself. */
     background-color: theme('colors.parchment.DEFAULT');
     background-image:
-      linear-gradient(rgba(20, 18, 16, 0.975), rgba(20, 18, 16, 0.975)),
-      url('/IMG-20261002-WA0021.jpg');
+      linear-gradient(rgba(20, 18, 16, 0.88), rgba(20, 18, 16, 0.88)),
+      url('/academy-logo-watermark.png');
     background-position: center, center;
     background-repeat: no-repeat, no-repeat;
-    background-size: cover, min(60vmin, 480px);
+    background-size: cover, min(90vmin, 900px);
     background-attachment: fixed, fixed;
     color: theme('colors.ink.DEFAULT');
     -webkit-font-smoothing: antialiased;
