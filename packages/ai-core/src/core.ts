@@ -1,17 +1,10 @@
-import {
-  AppError,
-  CAPABILITIES,
-  type Capability,
-  type Locale,
-  type Localized,
-} from '@yarub/shared';
+import { CAPABILITIES, type Capability, type Locale, type Localized } from '@yarub/shared';
 import type { ProviderRegistry, TextProvider } from '@yarub/providers';
 import { CapabilityRouter } from './router/capability-router.js';
 import { IntentResolver, needsClarification } from './intent/resolver.js';
 import type { Intent } from './intent/types.js';
-import { Planner } from './planner/planner.js';
 import type { Plan } from './planner/plan.schema.js';
-import { validateUserPrompt, assertVendorNeutral } from './guardrails/index.js';
+import { validateUserPrompt } from './guardrails/index.js';
 import { buildContext, type ProjectContext, type StoredMessage } from './memory/context.js';
 
 /**
@@ -58,8 +51,9 @@ export class YarubCore {
   }
 
   /**
-   * The decision every request passes through:
-   * clarify, answer directly, or become a project.
+   * The decision every request passes through: ask one clarifying question,
+   * or answer directly. See the comment inside for why 'project' is no
+   * longer a decision this method itself makes.
    */
   async decide(input: {
     rawRequest: string;
@@ -77,42 +71,25 @@ export class YarubCore {
       return { kind: 'clarify', question: CLARIFY_QUESTION, intent };
     }
 
-    if (intent.complexity === 'simple') {
-      const messages = buildContext({
-        locale: intent.language,
-        education: intent.domain === 'education',
-        messages: [
-          ...(input.history ?? []),
-          { role: 'user', content: request, createdAt: new Date() },
-        ],
-        ...(input.project ? { project: input.project } : {}),
-        ...(input.rollingSummary ? { rollingSummary: input.rollingSummary } : {}),
-      });
-      return { kind: 'answer', intent, messages };
-    }
-
-    const available = await this.capabilities();
-    if (available.length === 0) {
-      throw new AppError(
-        'NOT_CONFIGURED',
-        'No capabilities are configured',
-        'ابھی کوئی صلاحیت configure نہیں ہوئی۔ Settings میں provider شامل کریں۔',
-      );
-    }
-
-    const plan = await new Planner({
-      textProvider: provider,
-      availableCapabilities: available,
-    }).plan(intent, request);
-
-    // The plan's titles are shown to the user; they must stay vendor-neutral.
-    for (const step of plan.steps) {
-      assertVendorNeutral(step.title.ar);
-      assertVendorNeutral(step.title.ur);
-      assertVendorNeutral(step.title.en);
-    }
-
-    return { kind: 'project', intent, plan };
+    // This build never turns a request into a project — a website, game,
+    // image, video or document job. Every request that is not a clarifying
+    // question is answered directly, in chat, regardless of what the intent
+    // resolver judged its complexity to be. The Planner that used to run here
+    // for a 'complex' intent is unused as a result; the 'project' branch of
+    // CoreDecision still exists only because the Websites and Games pages
+    // build a Plan of their own (see builderPlan) without going through
+    // decide() at all, and jobs/route.ts still has to handle that shape.
+    const messages = buildContext({
+      locale: intent.language,
+      education: intent.domain === 'education',
+      messages: [
+        ...(input.history ?? []),
+        { role: 'user', content: request, createdAt: new Date() },
+      ],
+      ...(input.project ? { project: input.project } : {}),
+      ...(input.rollingSummary ? { rollingSummary: input.rollingSummary } : {}),
+    });
+    return { kind: 'answer', intent, messages };
   }
 
   /** Direct streaming answer for the simple path. */
