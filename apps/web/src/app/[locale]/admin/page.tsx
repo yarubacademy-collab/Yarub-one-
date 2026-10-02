@@ -21,10 +21,12 @@ export default async function AdminPage() {
     );
   }
 
-  const [plans, userCount, activeSubs] = await Promise.all([
+  const [plans, userCount, activeSubs, courses, academyInfo] = await Promise.all([
     prisma.plan.findMany({ orderBy: { priceMinor: 'asc' } }),
     prisma.user.count(),
     prisma.subscription.count({ where: { status: 'active' } }),
+    prisma.course.findMany({ orderBy: { createdAt: 'desc' } }),
+    prisma.academyInfo.findUnique({ where: { id: 'main' } }),
   ]);
 
   return (
@@ -32,6 +34,8 @@ export default async function AdminPage() {
       <h1 className="text-2xl font-bold mb-6">{t('title')}</h1>
       <AdminConsole
         initialPlans={JSON.parse(JSON.stringify(plans))}
+        initialCourses={JSON.parse(JSON.stringify(courses))}
+        initialAcademyInfo={academyInfo?.content ?? ''}
         stats={{ users: userCount, activeSubscriptions: activeSubs }}
       />
     </div>
