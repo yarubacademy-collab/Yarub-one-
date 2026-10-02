@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -9,15 +10,27 @@ interface CourseRow {
   description: string;
   price: string;
   schedule: string | null;
+  startsAt: string | null;
   imageUrl: string | null;
   active: boolean;
 }
 
-const EMPTY_COURSE: Omit<CourseRow, 'id'> = {
+interface CourseDraft {
+  name: string;
+  description: string;
+  price: string;
+  schedule: string;
+  startsAt: string;
+  imageUrl: string;
+  active: boolean;
+}
+
+const EMPTY_DRAFT: CourseDraft = {
   name: '',
   description: '',
   price: '',
   schedule: '',
+  startsAt: '',
   imageUrl: '',
   active: true,
 };
@@ -50,12 +63,22 @@ const NUMERIC_FIELDS = [
   'documentQuota',
 ] as const;
 
+/** A chosen file, as a data: URL the upload endpoint accepts directly. */
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 /**
- * Plan and quota administration.
+ * Plan, academy-info and course administration.
  *
- * Every limit in the product is editable here, which is what keeps the numbers
- * out of the code. Saving writes to the Plan table; enforcement reads from it
- * on the next request.
+ * Every limit and every course in the product is editable here, which is what
+ * keeps them out of the code: saving writes to the database; the chat and the
+ * pricing page read from it on the very next request, no deploy involved.
  */
 export function AdminConsole({
   initialPlans,
@@ -79,7 +102,8 @@ export function AdminConsole({
   const [academySaving, setAcademySaving] = useState(false);
 
   const [courses, setCourses] = useState(initialCourses);
-  const [newCourse, setNewCourse] = useState(EMPTY_COURSE);
+  const [drafts, setDrafts] = useState<CourseDraft[]>([EMPTY_DRAFT]);
+  const [uploading, setUploading] = useState<string>(''); // 'new-<index>' or an existing course id
   const [courseSaving, setCourseSaving] = useState('');
 
   function update(code: string, field: string, value: string) {
@@ -136,6 +160,37 @@ export function AdminConsole({
     }
   }
 
+  /** Uploads straight to this GitHub repo's own public/ folder; no S3 account needed. */
+  async function uploadImage(
+    key: string,
+    file: File,
+    onDone: (url: string) => void,
+  ) {
+    setUploading(key);
+    setError('');
+    try {
+      const dataUrl = await readAsDataUrl(file);
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, dataUrl }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(
+          body.code === 'NOT_CONFIGURED'
+            ? 'Image upload is not set up yet (GITHUB_TOKEN / GITHUB_REPO) — paste an image URL instead for now.'
+            : (body.message ?? 'Upload failed'),
+        );
+        return;
+      }
+      const { url } = (await res.json()) as { url: string };
+      onDone(url);
+    } finally {
+      setUploading('');
+    }
+  }
+
   function updateCourse(id: string, field: keyof CourseRow, value: string | boolean) {
     setCourses((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
   }
@@ -167,19 +222,35 @@ export function AdminConsole({
     }
   }
 
-  async function addCourse() {
+  function updateDraft(index: number, field: keyof CourseDraft, value: string | boolean) {
+    setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, [field]: value } : d)));
+  }
+
+  function addDraftRow() {
+    setDrafts((prev) => [...prev, EMPTY_DRAFT]);
+  }
+
+  function removeDraftRow(index: number) {
+    setDrafts((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  }
+
+  /** Saves every filled-in draft row in one request — one course or several at once. */
+  async function saveDrafts() {
+    const ready = drafts.filter((d) => d.name && d.description && d.price);
+    if (!ready.length) return;
+
     setCourseSaving('new');
     setError('');
     try {
       const res = await fetch('/api/admin/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCourse),
+        body: JSON.stringify({ courses: ready }),
       });
       if (res.ok) {
-        const { course } = (await res.json()) as { course: CourseRow };
-        setCourses((prev) => [course, ...prev]);
-        setNewCourse(EMPTY_COURSE);
+        const { courses: added } = (await res.json()) as { courses: CourseRow[] };
+        setCourses((prev) => [...added, ...prev]);
+        setDrafts([EMPTY_DRAFT]);
       } else {
         setError((await res.json().catch(() => ({}))).message ?? 'Error');
       }
@@ -187,6 +258,9 @@ export function AdminConsole({
       setCourseSaving('');
     }
   }
+
+  const fieldClass =
+    'rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber';
 
   return (
     <div className="space-y-8">
@@ -273,56 +347,105 @@ export function AdminConsole({
       <section className="space-y-4">
         <h2 className="font-semibold">Courses</h2>
         <p className="text-xs text-ink-muted">
-          Sent to the chat only when a message names one of these. imageUrl is any public link — a
-          GitHub-hosted image works well, the same way the app icon is hosted today.
+          Sent to the chat only when a message names one of these. "Starts at" is what a future
+          reminder step would schedule against — leave it blank for a course with no fixed start.
         </p>
 
-        <div className="y-card p-5 space-y-3">
-          <p className="text-xs text-ink-muted font-semibold">Add a course</p>
-          <input
-            dir="auto"
-            placeholder="Name"
-            value={newCourse.name}
-            onChange={(e) => setNewCourse((c) => ({ ...c, name: e.target.value }))}
-            className="w-full rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber"
-          />
-          <textarea
-            dir="auto"
-            rows={3}
-            placeholder="Description"
-            value={newCourse.description}
-            onChange={(e) => setNewCourse((c) => ({ ...c, description: e.target.value }))}
-            className="w-full rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber"
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              dir="ltr"
-              placeholder="Price, e.g. 750 SAR"
-              value={newCourse.price}
-              onChange={(e) => setNewCourse((c) => ({ ...c, price: e.target.value }))}
-              className="rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber"
-            />
-            <input
-              dir="auto"
-              placeholder="Schedule (optional)"
-              value={newCourse.schedule ?? ''}
-              onChange={(e) => setNewCourse((c) => ({ ...c, schedule: e.target.value }))}
-              className="rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber"
-            />
+        <div className="y-card p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-ink-muted font-semibold">
+              Add course{drafts.length > 1 ? 's' : ''} ({drafts.length} this time)
+            </p>
+            <button type="button" onClick={addDraftRow} className="text-xs underline text-amber">
+              + Add another course
+            </button>
           </div>
-          <input
-            dir="ltr"
-            placeholder="Image URL (optional)"
-            value={newCourse.imageUrl ?? ''}
-            onChange={(e) => setNewCourse((c) => ({ ...c, imageUrl: e.target.value }))}
-            className="w-full rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber"
-          />
+
+          {drafts.map((draft, index) => (
+            <div key={index} className="space-y-3 pt-4 first:pt-0 border-t border-edge first:border-0">
+              {drafts.length > 1 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-ink-muted">Course {index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeDraftRow(index)}
+                    className="text-xs text-danger"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+
+              <input
+                dir="auto"
+                placeholder="Name, e.g. Qur'an Tajweed"
+                value={draft.name}
+                onChange={(e) => updateDraft(index, 'name', e.target.value)}
+                className={`w-full ${fieldClass}`}
+              />
+              <textarea
+                dir="auto"
+                rows={3}
+                placeholder="Description"
+                value={draft.description}
+                onChange={(e) => updateDraft(index, 'description', e.target.value)}
+                className={`w-full ${fieldClass}`}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  dir="ltr"
+                  placeholder="Price, e.g. 750 SAR"
+                  value={draft.price}
+                  onChange={(e) => updateDraft(index, 'price', e.target.value)}
+                  className={fieldClass}
+                />
+                <input
+                  dir="auto"
+                  placeholder="Schedule (optional), e.g. Mon & Wed, 7pm"
+                  value={draft.schedule}
+                  onChange={(e) => updateDraft(index, 'schedule', e.target.value)}
+                  className={fieldClass}
+                />
+              </div>
+
+              <label className="block text-xs">
+                <span className="text-ink-muted">Starts at (optional)</span>
+                <input
+                  dir="ltr"
+                  type="datetime-local"
+                  value={draft.startsAt}
+                  onChange={(e) => updateDraft(index, 'startsAt', e.target.value)}
+                  className={`mt-1 w-full ${fieldClass}`}
+                />
+              </label>
+
+              <div className="space-y-2">
+                <span className="block text-xs text-ink-muted">Image (optional)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void uploadImage(`new-${index}`, file, (url) => updateDraft(index, 'imageUrl', url));
+                  }}
+                  disabled={uploading === `new-${index}`}
+                  className="text-xs"
+                />
+                {uploading === `new-${index}` && <p className="text-xs text-ink-muted">Uploading…</p>}
+                {draft.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element -- a remote, admin-chosen image
+                  <img src={draft.imageUrl} alt="" className="h-20 rounded-lg border border-edge" />
+                )}
+              </div>
+            </div>
+          ))}
+
           <button
-            onClick={() => void addCourse()}
-            disabled={courseSaving === 'new' || !newCourse.name || !newCourse.description || !newCourse.price}
+            onClick={() => void saveDrafts()}
+            disabled={courseSaving === 'new' || !drafts.some((d) => d.name && d.description && d.price)}
             className="y-primary text-sm"
           >
-            Add course
+            {drafts.length > 1 ? `Add ${drafts.filter((d) => d.name).length} courses` : 'Add course'}
           </button>
         </div>
 
@@ -332,35 +455,65 @@ export function AdminConsole({
               dir="auto"
               value={course.name}
               onChange={(e) => updateCourse(course.id, 'name', e.target.value)}
-              className="w-full rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm font-semibold outline-none focus:border-amber"
+              className={`w-full font-semibold ${fieldClass}`}
             />
             <textarea
               dir="auto"
               rows={3}
               value={course.description}
               onChange={(e) => updateCourse(course.id, 'description', e.target.value)}
-              className="w-full rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber"
+              className={`w-full ${fieldClass}`}
             />
             <div className="grid grid-cols-2 gap-3">
               <input
                 dir="ltr"
                 value={course.price}
                 onChange={(e) => updateCourse(course.id, 'price', e.target.value)}
-                className="rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber"
+                className={fieldClass}
               />
               <input
                 dir="auto"
                 value={course.schedule ?? ''}
                 onChange={(e) => updateCourse(course.id, 'schedule', e.target.value)}
-                className="rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber"
+                className={fieldClass}
               />
             </div>
-            <input
-              dir="ltr"
-              value={course.imageUrl ?? ''}
-              onChange={(e) => updateCourse(course.id, 'imageUrl', e.target.value)}
-              className="w-full rounded-lg border border-edge bg-parchment px-2 py-1.5 text-sm outline-none focus:border-amber"
-            />
+            <label className="block text-xs">
+              <span className="text-ink-muted">Starts at</span>
+              <input
+                dir="ltr"
+                type="datetime-local"
+                value={course.startsAt ? course.startsAt.slice(0, 16) : ''}
+                onChange={(e) => updateCourse(course.id, 'startsAt', e.target.value)}
+                className={`mt-1 w-full ${fieldClass}`}
+              />
+            </label>
+
+            <div className="space-y-2">
+              <input
+                dir="ltr"
+                placeholder="Image URL"
+                value={course.imageUrl ?? ''}
+                onChange={(e) => updateCourse(course.id, 'imageUrl', e.target.value)}
+                className={`w-full ${fieldClass}`}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void uploadImage(course.id, file, (url) => updateCourse(course.id, 'imageUrl', url));
+                }}
+                disabled={uploading === course.id}
+                className="text-xs"
+              />
+              {uploading === course.id && <p className="text-xs text-ink-muted">Uploading…</p>}
+              {course.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- a remote, admin-chosen image
+                <img src={course.imageUrl} alt="" className="h-20 rounded-lg border border-edge" />
+              )}
+            </div>
+
             <label className="flex items-center gap-2 text-xs">
               <input
                 type="checkbox"
