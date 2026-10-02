@@ -5,17 +5,14 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { type Locale } from '@yarub/shared';
-import { AllowanceBar } from './AllowanceBar';
 
-const SECTIONS = [
-  'create', 'chat', 'image', 'video', 'education',
-  'website', 'game', 'visual', 'documents', 'projects',
-  // 'account' is the only reachable path to sign in / sign up: the account
-  // page itself already renders a Sign In link when no session exists.
-  // Without a rail entry there was no way to reach it — not from the site,
-  // and not from the Android app, which has no address bar to type one in.
-  'account', 'settings',
-] as const;
+// Chat and the account page (the only reachable path to sign in / sign up —
+// without a rail entry there is no way to reach it, not from the site and
+// not from the Android app, which has no address bar to type one in).
+// Image, video, website, game and the rest of the capability pages, the plan
+// badge and the Premium link are intentionally gone: this build is chat-only,
+// with no paid tier of any kind.
+const SECTIONS = ['chat', 'account'] as const;
 
 /**
  * One shell for the whole product.
@@ -54,12 +51,7 @@ export function AppShell({ locale, children }: { locale: Locale; children: React
         })}
       </nav>
 
-      <main className="flex-1 min-w-0">
-        <div className="p-4 pb-0">
-          <AllowanceBar locale={locale} />
-        </div>
-        {children}
-      </main>
+      <main className="flex-1 min-w-0">{children}</main>
     </div>
   );
 }
