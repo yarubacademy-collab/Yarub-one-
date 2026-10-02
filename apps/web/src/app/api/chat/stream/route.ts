@@ -6,6 +6,7 @@ import { requireUserId } from '../../../../lib/session';
 import { enforceRateLimit } from '../../../../lib/rate-limit';
 import { toHttpResponse } from '../../../../lib/logger';
 import { needsLiveInfo, webSearch } from '../../../../lib/web-search';
+import { buildAcademyGrounding } from '../../../../lib/academy-grounding';
 
 export const runtime = 'nodejs';
 
@@ -99,6 +100,14 @@ export async function POST(request: Request) {
       }
     }
 
+    // Academy facts and, when the message matches a configured course, that
+    // course's exact price and description. Nothing happens here — same as the
+    // web search step above — until the admin console actually has data in it.
+    const academy = await buildAcademyGrounding(body.message);
+    if (academy.context) {
+      decision.messages.splice(1, 0, { role: 'system', content: academy.context });
+    }
+
     const encoder = new TextEncoder();
     // Set when the reader goes away (stop button, closed tab or app). The loop
     // then stops pulling from the provider instead of paying for words nobody reads.
@@ -117,6 +126,12 @@ export async function POST(request: Request) {
             readerGone = true;
           }
         };
+
+        // Sent once, before any text, so the client can show the course's ad
+        // image alongside the answer as soon as the answer starts arriving.
+        if (academy.imageUrl) {
+          send(`data: ${JSON.stringify({ image: academy.imageUrl })}\n\n`);
+        }
 
         try {
           for await (const chunk of core().streamAnswer(decision)) {
