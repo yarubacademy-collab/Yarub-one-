@@ -1,17 +1,28 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * YARUB ONE visual identity — dark, professional palette.
+ * YARUB Academy visual identity.
+ *
+ * Every value here is read directly from the academy's own logo
+ * (apps/web/public/IMG-20261002-WA0021.jpg) rather than chosen separately:
+ * the gold of its calligraphy, the deep green of its small accent marks, and
+ * the warm near-black the whole dark theme is built from. Token names are
+ * unchanged from before (ink/parchment/amber/edge), so every component that
+ * already reads them picks up the new palette automatically.
  */
 export default {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        ink: { DEFAULT: '#e8eaf0', soft: '#c7cbd6', muted: '#8b93a7' },
-        parchment: { DEFAULT: '#0e1117', raised: '#171b24', sunk: '#0a0c10' },
-        amber: { DEFAULT: '#3b82f6', bright: '#60a5fa', deep: '#1d4ed8' },
-        edge: '#262b36',
+        ink: { DEFAULT: '#f0ead6', soft: '#d8cba8', muted: '#9c9184' },
+        parchment: { DEFAULT: '#141210', raised: '#1f1c18', sunk: '#0d0b09' },
+        // The logo's gold calligraphy.
+        amber: { DEFAULT: '#c09030', bright: '#e0b050', deep: '#8b6420' },
+        // The logo's small dark-green accent marks — used sparingly, e.g. a
+        // success state, alongside the gold rather than instead of it.
+        sage: { DEFAULT: '#306050', bright: '#4a8a72' },
+        edge: '#2e2a22',
         danger: '#f87171',
       },
       fontFamily: {
