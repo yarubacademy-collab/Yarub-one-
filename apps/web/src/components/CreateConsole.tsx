@@ -17,6 +17,8 @@ interface PlanView {
 interface ThreadEntry {
   role: 'user' | 'assistant';
   content: string;
+  /** A course ad image sent alongside this answer, if the message matched one. */
+  image?: string;
 }
 
 // Not every TypeScript lib.dom version ships these types; the API is
@@ -326,8 +328,20 @@ export function CreateConsole({
         if (!line.startsWith('data:')) continue;
         const payload = line.slice(5).trim();
         if (payload === '[DONE]') return;
-        const parsed = JSON.parse(payload) as { delta?: string; error?: { message: string } };
+        const parsed = JSON.parse(payload) as {
+          delta?: string;
+          error?: { message: string };
+          image?: string;
+        };
         if (parsed.error) setError(parsed.error.message);
+        if (parsed.image) {
+          setThread((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last?.role === 'assistant') next[next.length - 1] = { ...last, image: parsed.image };
+            return next;
+          });
+        }
         if (parsed.delta) {
           const delta = parsed.delta;
           setThread((prev) => {
@@ -389,6 +403,11 @@ export function CreateConsole({
             }`}
           >
             {entry.content}
+            {entry.image && (
+              // eslint-disable-next-line @next/next/no-img-element -- a remote
+              // course image, not a local asset Next's optimizer can process
+              <img src={entry.image} alt="" className="mt-3 rounded-lg max-w-full" />
+            )}
           </div>
         ))}
 
