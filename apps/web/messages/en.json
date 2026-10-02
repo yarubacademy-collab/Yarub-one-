@@ -1,127 +1,127 @@
 {
-  "brand": {
-    "name": "YARUB ONE",
-    "tagline": "Intelligence and creation platform"
-  },
-  "nav": {
-    "create": "Create",
-    "chat": "Chat",
-    "image": "Images",
-    "video": "Video",
-    "education": "Education",
-    "website": "Websites",
-    "game": "Games",
-    "visual": "Design",
-    "documents": "Documents",
-    "projects": "Projects",
-    "settings": "Settings",
-    "pricing": "Pricing",
-    "account": "Account",
-    "admin": "Admin"
-  },
-  "create": {
-    "heading": "What would you like to create?",
-    "placeholder": "Describe it in your own words… e.g. Create an Arabic science book for children with illustrations",
-    "submit": "Start",
-    "thinking": "Understanding your request…"
-  },
-  "job": {
-    "planTitle": "Execution plan",
-    "running": "In progress",
-    "succeeded": "Complete",
-    "failed": "Could not complete",
-    "cancelled": "Cancelled",
-    "partial": "Partially complete",
-    "cancel": "Cancel",
-    "resume": "Resume",
-    "step": {
-      "pending": "Waiting",
-      "running": "Working",
-      "succeeded": "Done",
-      "failed": "Failed",
-      "skipped": "Skipped",
-      "not_configured": "Not configured"
-    }
-  },
-  "capability": {
-    "heading": "Capabilities",
-    "available": "Configured",
-    "degraded": "Degraded",
-    "not_configured": "Not configured",
-    "notConfiguredHelp": "This capability needs a provider configured in Settings before it can be used.",
-    "text.generate": "Text generation",
-    "text.reason": "Reasoning",
-    "text.translate": "Translation",
-    "image.generate": "Image generation",
-    "image.edit": "Image editing",
-    "video.textToVideo": "Text to video",
-    "video.imageToVideo": "Image to video",
-    "speech.tts": "Text to speech",
-    "speech.stt": "Speech to text",
-    "code.generate": "Code generation",
-    "document.render": "Document rendering",
-    "embedding.create": "Semantic embeddings"
-  },
-  "project": {
-    "title": "Projects",
-    "empty": "No projects yet.",
-    "new": "New project",
-    "open": "Open",
-    "rename": "Rename",
-    "duplicate": "Duplicate",
-    "delete": "Delete",
-    "artifacts": "Artifacts",
-    "assets": "Assets",
-    "versions": "Versions",
-    "export": "Export"
-  },
-  "error": {
-    "generic": "Something went wrong. Please try again.",
-    "rateLimited": "You have reached today's limit.",
-    "notConfigured": "This capability is not configured yet.",
-    "unauthorized": "Please sign in."
-  },
-  "auth": {
-    "signIn": "Sign in",
-    "signUp": "Create account",
-    "email": "Email",
-    "password": "Password",
-    "signOut": "Sign out"
-  },
-  "plan": {
-    "free": "Free",
-    "premium_monthly": "Premium Monthly",
-    "premium_yearly": "Premium Yearly",
-    "current": "Your current plan",
-    "upgrade": "Upgrade to Premium",
-    "choose": "Choose",
-    "cancel": "Cancel subscription",
-    "resume": "Resume subscription",
-    "perMonth": "per month",
-    "perYear": "per year",
-    "priceUnavailable": "Price not set yet",
-    "remaining": "remaining",
-    "renews": "Renews",
-    "expires": "Expires",
-    "paymentNotConfigured": "Payments are not configured yet. Contact the platform owner to activate a subscription.",
-    "limitReached": "You have reached your free limit. Choose a Premium plan to keep creating.",
-    "history": "Subscription history"
-  },
-  "meter": {
-    "image": "Images",
-    "video": "Video",
-    "website": "Websites",
-    "game": "Games",
-    "document": "Documents"
-  },
-  "admin": {
-    "title": "Admin",
-    "plans": "Plans",
-    "users": "Users",
-    "providers": "Providers",
-    "role": "Role",
-    "save": "Save",
-    "grant": "Grant plan",
-    "noAccess": "You do not have access."
+ "brand": {
+  "name": "YARUB ONE",
+  "tagline": "Intelligence and creation platform"
+ },
+ "nav": {
+  "create": "Create",
+  "chat": "Chat",
+  "image": "Images",
+  "video": "Video",
+  "education": "Education",
+  "website": "Websites",
+  "game": "Games",
+  "visual": "Design",
+  "documents": "Documents",
+  "projects": "Projects",
+  "settings": "Settings",
+  "pricing": "Pricing",
+  "account": "Account",
+  "admin": "Admin"
+ },
+ "create": {
+  "heading": "What would you like to ask about YARUB Academy today?",
+  "placeholder": "Ask about courses, prices, schedules, or anything about the academy…",
+  "submit": "Start",
+  "thinking": "Understanding your request…"
+ },
+ "job": {
+  "planTitle": "Execution plan",
+  "running": "In progress",
+  "succeeded": "Complete",
+  "failed": "Could not complete",
+  "cancelled": "Cancelled",
+  "partial": "Partially complete",
+  "cancel": "Cancel",
+  "resume": "Resume",
+  "step": {
+   "pending": "Waiting",
+   "running": "Working",
+   "succeeded": "Done",
+   "failed": "Failed",
+   "skipped": "Skipped",
+   "not_configured": "Not configured"
   }
+ },
+ "capability": {
+  "heading": "Capabilities",
+  "available": "Configured",
+  "degraded": "Degraded",
+  "not_configured": "Not configured",
+  "notConfiguredHelp": "This capability needs a provider configured in Settings before it can be used.",
+  "text.generate": "Text generation",
+  "text.reason": "Reasoning",
+  "text.translate": "Translation",
+  "image.generate": "Image generation",
+  "image.edit": "Image editing",
+  "video.textToVideo": "Text to video",
+  "video.imageToVideo": "Image to video",
+  "speech.tts": "Text to speech",
+  "speech.stt": "Speech to text",
+  "code.generate": "Code generation",
+  "document.render": "Document rendering",
+  "embedding.create": "Semantic embeddings"
+ },
+ "project": {
+  "title": "Projects",
+  "empty": "No projects yet.",
+  "new": "New project",
+  "open": "Open",
+  "rename": "Rename",
+  "duplicate": "Duplicate",
+  "delete": "Delete",
+  "artifacts": "Artifacts",
+  "assets": "Assets",
+  "versions": "Versions",
+  "export": "Export"
+ },
+ "error": {
+  "generic": "Something went wrong. Please try again.",
+  "rateLimited": "You have reached today's limit.",
+  "notConfigured": "This capability is not configured yet.",
+  "unauthorized": "Please sign in."
+ },
+ "auth": {
+  "signIn": "Sign in",
+  "signUp": "Create account",
+  "email": "Email",
+  "password": "Password",
+  "signOut": "Sign out"
+ },
+ "plan": {
+  "free": "Free",
+  "premium_monthly": "Premium Monthly",
+  "premium_yearly": "Premium Yearly",
+  "current": "Your current plan",
+  "upgrade": "Upgrade to Premium",
+  "choose": "Choose",
+  "cancel": "Cancel subscription",
+  "resume": "Resume subscription",
+  "perMonth": "per month",
+  "perYear": "per year",
+  "priceUnavailable": "Price not set yet",
+  "remaining": "remaining",
+  "renews": "Renews",
+  "expires": "Expires",
+  "paymentNotConfigured": "Payments are not configured yet. Contact the platform owner to activate a subscription.",
+  "limitReached": "You have reached your free limit. Choose a Premium plan to keep creating.",
+  "history": "Subscription history"
+ },
+ "meter": {
+  "image": "Images",
+  "video": "Video",
+  "website": "Websites",
+  "game": "Games",
+  "document": "Documents"
+ },
+ "admin": {
+  "title": "Admin",
+  "plans": "Plans",
+  "users": "Users",
+  "providers": "Providers",
+  "role": "Role",
+  "save": "Save",
+  "grant": "Grant plan",
+  "noAccess": "You do not have access."
+ }
 }
