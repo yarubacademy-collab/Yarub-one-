@@ -1,6 +1,8 @@
 <resources>
-    <!-- Matches the web design tokens so both clients look like one product. -->
-    <color name="parchment">#FAF7F0</color>
-    <color name="ink">#16181D</color>
-    <color name="amber">#C08A2E</color>
+    <!-- Matches the web design tokens so both clients look like one product.
+         Kept in sync by hand: when apps/web/tailwind.config.ts's palette
+         changes, these three lines are the Android side of that same change. -->
+    <color name="parchment">#141210</color>
+    <color name="ink">#F0EAD6</color>
+    <color name="amber">#C09030</color>
 </resources>
