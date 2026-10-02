@@ -398,7 +398,7 @@ export function CreateConsole({
         {thread.map((entry, i) => (
           <div
             key={i}
-            className={`y-card p-4 max-w-[85%] whitespace-pre-wrap ${
+            className={`y-bubble p-4 max-w-[85%] whitespace-pre-wrap ${
               entry.role === 'user' ? 'ms-auto bg-amber-deep/20 border-amber-deep/40' : ''
             }`}
           >
