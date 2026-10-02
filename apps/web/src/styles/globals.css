@@ -21,12 +21,14 @@
   body {
     /* The academy's own logo, fixed and very faint, under a near-opaque dark
        layer: in CSS, the first background-image listed paints on top, so the
-       94%-opaque overlay here is what keeps text everywhere fully readable,
-       while the 6% it lets through still reads as a watermark. Flat color in
-       print, since the image is decorative, not content worth printing. */
+       97.5%-opaque overlay here is what keeps text everywhere fully readable
+       — including the chat's own transparent answer bubbles, where the
+       logo's bright, detailed background would otherwise show through too
+       strongly and fight with the text sitting on top of it. The 2.5% still
+       let through reads as a watermark, not as a second thing to read. */
     background-color: theme('colors.parchment.DEFAULT');
     background-image:
-      linear-gradient(rgba(20, 18, 16, 0.94), rgba(20, 18, 16, 0.94)),
+      linear-gradient(rgba(20, 18, 16, 0.975), rgba(20, 18, 16, 0.975)),
       url('/IMG-20261002-WA0021.jpg');
     background-position: center, center;
     background-repeat: no-repeat, no-repeat;
