@@ -29,7 +29,8 @@
     "jszip": "^3.10.1",
     "@yarub/billing": "workspace:*",
     "@yarub/documents": "workspace:*",
-    "lucide-react": "^0.400.0"
+    "lucide-react": "^0.400.0",
+    "nodemailer": "^6.9.15"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
@@ -37,6 +38,7 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.6.0",
-    "prisma": "^5.20.0"
+    "prisma": "^5.20.0",
+    "@types/nodemailer": "^6.4.16"
   }
 }
