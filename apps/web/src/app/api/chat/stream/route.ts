@@ -132,6 +132,9 @@ export async function POST(request: Request) {
         if (academy.imageUrl) {
           send(`data: ${JSON.stringify({ image: academy.imageUrl })}\n\n`);
         }
+        if (academy.whatsappUrl) {
+          send(`data: ${JSON.stringify({ whatsapp: academy.whatsappUrl })}\n\n`);
+        }
 
         try {
           for await (const chunk of core().streamAnswer(decision)) {
