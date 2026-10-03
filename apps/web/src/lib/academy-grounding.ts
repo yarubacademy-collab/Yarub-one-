@@ -1,4 +1,5 @@
 import { prisma } from '@yarub/db';
+import { buildWhatsAppJoinLink } from './whatsapp-join';
 
 /**
  * Keeps chat answers about the academy grounded in real data instead of the
@@ -19,6 +20,7 @@ export interface CourseMatch {
   price: string;
   schedule: string | null;
   imageUrl: string | null;
+  whatsappNumber: string | null;
 }
 
 const MAX_MATCHES = 3;
@@ -60,12 +62,20 @@ function formatCourse(course: CourseMatch): string {
  */
 export async function buildAcademyGrounding(
   message: string,
-): Promise<{ context: string | null; imageUrl: string | null }> {
+): Promise<{ context: string | null; imageUrl: string | null; whatsappUrl: string | null }> {
   const [info, courses] = await Promise.all([
     prisma.academyInfo.findUnique({ where: { id: 'main' } }),
     prisma.course.findMany({
       where: { active: true },
-      select: { id: true, name: true, description: true, price: true, schedule: true, imageUrl: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        schedule: true,
+        imageUrl: true,
+        whatsappNumber: true,
+      },
     }),
   ]);
 
@@ -76,10 +86,18 @@ export async function buildAcademyGrounding(
     sections.push(`RELEVANT COURSES (use these exact details; do not invent others):\n\n${matches.map(formatCourse).join('\n\n')}`);
   }
 
-  if (!sections.length) return { context: null, imageUrl: null };
+  if (!sections.length) return { context: null, imageUrl: null, whatsappUrl: null };
+
+  // The join link names the single best-matched course — joining "the course
+  // you just asked about" only makes sense once one specific course has
+  // actually come up, not for a general question about the academy.
+  const whatsappUrl = matches[0]
+    ? buildWhatsAppJoinLink(matches[0].name, matches[0].whatsappNumber)
+    : null;
 
   return {
     context: sections.join('\n\n'),
     imageUrl: matches.find((c) => c.imageUrl)?.imageUrl ?? null,
+    whatsappUrl,
   };
 }
