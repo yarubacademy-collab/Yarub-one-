@@ -12,6 +12,7 @@ interface CourseRow {
   schedule: string | null;
   startsAt: string | null;
   imageUrl: string | null;
+  whatsappNumber: string | null;
   active: boolean;
 }
 
@@ -22,6 +23,7 @@ interface CourseDraft {
   schedule: string;
   startsAt: string;
   imageUrl: string;
+  whatsappNumber: string;
   active: boolean;
 }
 
@@ -32,6 +34,7 @@ const EMPTY_DRAFT: CourseDraft = {
   schedule: '',
   startsAt: '',
   imageUrl: '',
+  whatsappNumber: '',
   active: true,
 };
 
@@ -408,16 +411,28 @@ export function AdminConsole({
                 />
               </div>
 
-              <label className="block text-xs">
-                <span className="text-ink-muted">Starts at (optional)</span>
-                <input
-                  dir="ltr"
-                  type="datetime-local"
-                  value={draft.startsAt}
-                  onChange={(e) => updateDraft(index, 'startsAt', e.target.value)}
-                  className={`mt-1 w-full ${fieldClass}`}
-                />
-              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-xs">
+                  <span className="text-ink-muted">Starts at (optional)</span>
+                  <input
+                    dir="ltr"
+                    type="datetime-local"
+                    value={draft.startsAt}
+                    onChange={(e) => updateDraft(index, 'startsAt', e.target.value)}
+                    className={`mt-1 w-full ${fieldClass}`}
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="text-ink-muted">WhatsApp number (optional)</span>
+                  <input
+                    dir="ltr"
+                    placeholder="e.g. 96876007156"
+                    value={draft.whatsappNumber}
+                    onChange={(e) => updateDraft(index, 'whatsappNumber', e.target.value)}
+                    className={`mt-1 w-full ${fieldClass}`}
+                  />
+                </label>
+              </div>
 
               <div className="space-y-2">
                 <span className="block text-xs text-ink-muted">Image (optional)</span>
@@ -478,6 +493,17 @@ export function AdminConsole({
                 className={fieldClass}
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs">
+              <span className="text-ink-muted">WhatsApp number (optional)</span>
+              <input
+                dir="ltr"
+                placeholder="e.g. 96876007156"
+                value={course.whatsappNumber ?? ''}
+                onChange={(e) => updateCourse(course.id, 'whatsappNumber', e.target.value)}
+                className={`mt-1 w-full ${fieldClass}`}
+              />
+            </label>
             <label className="block text-xs">
               <span className="text-ink-muted">Starts at</span>
               <input
@@ -488,6 +514,7 @@ export function AdminConsole({
                 className={`mt-1 w-full ${fieldClass}`}
               />
             </label>
+            </div>
 
             <div className="space-y-2">
               <input
