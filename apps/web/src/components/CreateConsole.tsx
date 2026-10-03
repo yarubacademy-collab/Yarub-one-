@@ -19,6 +19,8 @@ interface ThreadEntry {
   content: string;
   /** A course ad image sent alongside this answer, if the message matched one. */
   image?: string;
+  /** A pre-filled WhatsApp link to join the course this answer is about, if any. */
+  whatsapp?: string;
 }
 
 // Not every TypeScript lib.dom version ships these types; the API is
@@ -332,6 +334,7 @@ export function CreateConsole({
           delta?: string;
           error?: { message: string };
           image?: string;
+          whatsapp?: string;
         };
         if (parsed.error) setError(parsed.error.message);
         if (parsed.image) {
@@ -339,6 +342,14 @@ export function CreateConsole({
             const next = [...prev];
             const last = next[next.length - 1];
             if (last?.role === 'assistant') next[next.length - 1] = { ...last, image: parsed.image };
+            return next;
+          });
+        }
+        if (parsed.whatsapp) {
+          setThread((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last?.role === 'assistant') next[next.length - 1] = { ...last, whatsapp: parsed.whatsapp };
             return next;
           });
         }
@@ -407,6 +418,16 @@ export function CreateConsole({
               // eslint-disable-next-line @next/next/no-img-element -- a remote
               // course image, not a local asset Next's optimizer can process
               <img src={entry.image} alt="" className="mt-3 rounded-lg max-w-full" />
+            )}
+            {entry.whatsapp && (
+              <a
+                href={entry.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2 text-sm font-semibold text-white"
+              >
+                الانضمام عبر واتساب
+              </a>
             )}
           </div>
         ))}
