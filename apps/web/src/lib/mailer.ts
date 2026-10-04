@@ -39,7 +39,11 @@ export async function sendAnnouncementEmail(input: {
     });
     return { sent: true };
   } catch (error) {
-    console.error('[mailer] send failed', error instanceof Error ? error.message : error);
-    return { sent: false, reason: 'send failed' };
+    // The real SMTP error (bad credentials, connection refused, etc.) is
+    // returned here, not just logged, so a failure is diagnosable from the
+    // cron route's own JSON response rather than needing Vercel's Logs.
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error('[mailer] send failed', detail);
+    return { sent: false, reason: detail };
   }
 }
