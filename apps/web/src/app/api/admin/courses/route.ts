@@ -13,7 +13,11 @@ const courseSchema = z.object({
   /// The real start time, for the reminder step to schedule against later.
   /// Optional — a blank value here just means no reminder is ever sent for
   /// this course, nothing else about it changes.
-  startsAt: z.string().datetime().optional().or(z.literal('')),
+  // { local: true } accepts what a <input type="datetime-local"> actually
+  // sends (e.g. "2026-10-04T15:05", no timezone suffix) — the admin console's
+  // own starts-at field. Without it, every course with a start time set would
+  // fail this validation and the whole save would be silently rejected.
+  startsAt: z.string().datetime({ local: true }).optional().or(z.literal('')),
   imageUrl: z.string().url().optional().or(z.literal('')),
   /// Which WhatsApp number this course's "Join" button messages. Digits only,
   /// international format, no "+". Blank means ACADEMY_WHATSAPP_NUMBER is
