@@ -40,6 +40,22 @@ export async function GET() {
   }
 }
 
+/**
+ * The admin's "Starts at" field is plain `<input type="datetime-local">`, with
+ * no timezone of its own — the browser just sends back the digits exactly as
+ * typed (e.g. "2026-10-04T17:00"). Every course this academy runs happens in
+ * Oman, so that "17:00" means 5pm Oman time, not 5pm UTC: Oman is UTC+4 all
+ * year (no daylight saving), so the fixed "+04:00" below is always correct.
+ * Appending it turns the ambiguous local reading into one specific, real
+ * moment in time, which is what the reminder job actually schedules against.
+ */
+const OMAN_UTC_OFFSET = '+04:00';
+
+function toUtcFromOmanTime(datetimeLocal: string): Date {
+  const hasOffset = /[zZ]|[+-]\d{2}:\d{2}$/.test(datetimeLocal);
+  return new Date(hasOffset ? datetimeLocal : `${datetimeLocal}${OMAN_UTC_OFFSET}`);
+}
+
 /** One course, keeping the body of a single create() in one place. */
 function toCreateData(body: z.infer<typeof courseSchema>) {
   return {
@@ -47,7 +63,7 @@ function toCreateData(body: z.infer<typeof courseSchema>) {
     imageUrl: body.imageUrl || null,
     schedule: body.schedule || null,
     whatsappNumber: body.whatsappNumber || null,
-    startsAt: body.startsAt ? new Date(body.startsAt) : null,
+    startsAt: body.startsAt ? toUtcFromOmanTime(body.startsAt) : null,
   };
 }
 
