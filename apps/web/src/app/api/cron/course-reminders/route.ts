@@ -60,7 +60,7 @@ export async function GET(request: Request) {
   const recipients = await prisma.user.findMany({ select: { email: true } });
   const allEmails = recipients.map((u) => u.email);
 
-  const results: Array<{ courseId: string; stage: ReminderStage; sent: boolean }> = [];
+  const results: Array<{ courseId: string; stage: ReminderStage; sent: boolean; reason?: string }> = [];
 
   for (const course of courses) {
     if (!course.startsAt) continue;
@@ -81,7 +81,9 @@ export async function GET(request: Request) {
       // then left for the admin to notice and fix.
       await prisma.courseReminder.create({ data: { courseId: course.id, stage } });
 
-      results.push({ courseId: course.id, stage, sent: outcome.sent });
+      // The reason is included right here, not just logged, so a failure can
+      // be diagnosed by opening this URL in a browser — no Vercel Logs needed.
+      results.push({ courseId: course.id, stage, sent: outcome.sent, ...(outcome.reason ? { reason: outcome.reason } : {}) });
     }
   }
 
