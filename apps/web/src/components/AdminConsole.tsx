@@ -27,6 +27,17 @@ interface CourseDraft {
   active: boolean;
 }
 
+/**
+ * Shows a stored startsAt (UTC, e.g. "2026-10-04T13:00:00.000Z") back in Oman
+ * local time, matching what the admin actually typed for it. Oman is UTC+4
+ * all year, so this is just "add 4 hours and drop the Z" — the server-side
+ * counterpart of the same fixed offset applied when the course was saved.
+ */
+function toOmanLocalInputValue(utcIso: string): string {
+  const omanTime = new Date(new Date(utcIso).getTime() + 4 * 60 * 60 * 1000);
+  return omanTime.toISOString().slice(0, 16);
+}
+
 const EMPTY_DRAFT: CourseDraft = {
   name: '',
   description: '',
@@ -509,7 +520,7 @@ export function AdminConsole({
               <input
                 dir="ltr"
                 type="datetime-local"
-                value={course.startsAt ? course.startsAt.slice(0, 16) : ''}
+                value={course.startsAt ? toOmanLocalInputValue(course.startsAt) : ''}
                 onChange={(e) => updateCourse(course.id, 'startsAt', e.target.value)}
                 className={`mt-1 w-full ${fieldClass}`}
               />
