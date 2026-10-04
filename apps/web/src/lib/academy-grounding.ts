@@ -60,24 +60,38 @@ function formatCourse(course: CourseMatch): string {
  * Returns null context when there is nothing to add, so a request with no
  * academy data configured yet behaves exactly as before this feature existed.
  */
+const NOTHING = { context: null, imageUrl: null, whatsappUrl: null } as const;
+
 export async function buildAcademyGrounding(
   message: string,
 ): Promise<{ context: string | null; imageUrl: string | null; whatsappUrl: string | null }> {
-  const [info, courses] = await Promise.all([
-    prisma.academyInfo.findUnique({ where: { id: 'main' } }),
-    prisma.course.findMany({
-      where: { active: true },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        schedule: true,
-        imageUrl: true,
-        whatsappNumber: true,
-      },
-    }),
-  ]);
+  // A chat message must always get an answer. This feature enriches that
+  // answer with academy facts when it can, but it must never be the reason
+  // chat itself goes silent — e.g. if a deploy's database migration hasn't
+  // finished yet and these two tables don't exist for a few minutes. Any
+  // failure here is treated exactly like "nothing configured yet".
+  let info: { content: string } | null;
+  let courses: CourseMatch[];
+  try {
+    [info, courses] = await Promise.all([
+      prisma.academyInfo.findUnique({ where: { id: 'main' } }),
+      prisma.course.findMany({
+        where: { active: true },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          schedule: true,
+          imageUrl: true,
+          whatsappNumber: true,
+        },
+      }),
+    ]);
+  } catch (error) {
+    console.error('[academy-grounding] unavailable, answering without it', error instanceof Error ? error.message : error);
+    return NOTHING;
+  }
 
   const matches = findMatchingCourses(message, courses);
   const sections: string[] = [];
