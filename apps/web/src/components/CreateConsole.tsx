@@ -305,8 +305,17 @@ export function CreateConsole({
 
     const contentType = res.headers.get('content-type') ?? '';
     if (!contentType.includes('event-stream')) {
-      const data = await res.json();
-      if (data.kind === 'clarify') setQuestion(data.question);
+      const data = await res.json().catch(() => null);
+      if (data?.kind === 'clarify') {
+        setQuestion(data.question);
+      } else {
+        // Any other non-stream response is a server error (a thrown
+        // exception, a missing table, anything toHttpResponse wraps) rather
+        // than a normal "clarify" reply. Previously this fell through
+        // silently: the question appeared to vanish into nothing, with no
+        // indication anything had gone wrong.
+        setError(data?.message ?? tError('generic'));
+      }
       return;
     }
 
