@@ -19,6 +19,7 @@ export interface CourseMatch {
   description: string;
   price: string;
   schedule: string | null;
+  startsAt: Date | null;
   imageUrl: string | null;
   whatsappNumber: string | null;
 }
@@ -51,7 +52,21 @@ function formatCourse(course: CourseMatch): string {
     `Price: ${course.price}`,
   ];
   if (course.schedule) parts.push(`Schedule: ${course.schedule}`);
+  if (course.startsAt) parts.push(`Starts: ${course.startsAt.toISOString()}`);
   return parts.join('\n');
+}
+
+/**
+ * One line per course: just enough for "what courses do you have this month"
+ * or "is there a Qur'an course coming up" to be answerable without a specific
+ * course being named first. Kept to name/price/schedule (no description) so
+ * even a few dozen active courses stay a short, cheap addition to every
+ * single chat message — unlike the full RELEVANT COURSES section below,
+ * which is sent only for the one or few courses a message actually names.
+ */
+function formatCourseSummaryLine(course: CourseMatch): string {
+  const when = course.schedule ?? (course.startsAt ? course.startsAt.toISOString() : null);
+  return `- ${course.name} — ${course.price}${when ? ` — ${when}` : ''}`;
 }
 
 /**
@@ -83,6 +98,7 @@ export async function buildAcademyGrounding(
           description: true,
           price: true,
           schedule: true,
+          startsAt: true,
           imageUrl: true,
           whatsappNumber: true,
         },
@@ -96,6 +112,13 @@ export async function buildAcademyGrounding(
   const matches = findMatchingCourses(message, courses);
   const sections: string[] = [];
   if (info?.content) sections.push(`ACADEMY INFORMATION:\n${info.content}`);
+  // Always included, independent of whether the message names a specific
+  // course: this is what lets "what courses are there this month?" or "is
+  // there a Qur'an course coming up?" be answered at all, rather than only
+  // ever-more-specific follow-ups once a name has already come up.
+  if (courses.length) {
+    sections.push(`ALL CURRENT COURSES (use this list for any general question about what's offered; do not invent others):\n${courses.map(formatCourseSummaryLine).join('\n')}`);
+  }
   if (matches.length) {
     sections.push(`RELEVANT COURSES (use these exact details; do not invent others):\n\n${matches.map(formatCourse).join('\n\n')}`);
   }
