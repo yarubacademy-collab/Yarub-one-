@@ -2,6 +2,7 @@ import { prisma } from '@yarub/db';
 import { dueStages, STAGE_LABEL_AR, type ReminderStage } from '../../../../lib/course-reminders';
 import { sendAnnouncementEmail } from '../../../../lib/mailer';
 import { buildWhatsAppJoinLink } from '../../../../lib/whatsapp-join';
+import { escapeHtml } from '../../../../lib/html-escape';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -18,6 +19,10 @@ export const maxDuration = 60;
  * courses to its own student list, not a platform with per-course sign-ups.
  */
 
+// course.name and course.price are admin-entered, free-text fields — nothing
+// stops an admin from typing a "&", a quote, or a stray "<" into a course
+// name. Escaped before going into this HTML, so a name like "Mother & Child
+// Care" renders as that literal text instead of silently breaking the markup.
 function emailHtml(
   courseName: string,
   price: string,
@@ -26,12 +31,14 @@ function emailHtml(
 ): string {
   const joinLink = buildWhatsAppJoinLink(courseName, whatsappNumber);
   const when = STAGE_LABEL_AR[stage];
+  const safeName = escapeHtml(courseName);
+  const safePrice = escapeHtml(price);
 
   return `
     <div dir="rtl" style="font-family: sans-serif; font-size: 16px; line-height: 1.8;">
       <p>السلام عليكم،</p>
-      <p>دورة <strong>"${courseName}"</strong> تبدأ ${when}.</p>
-      <p>السعر: <strong>${price}</strong></p>
+      <p>دورة <strong>"${safeName}"</strong> تبدأ ${when}.</p>
+      <p>السعر: <strong>${safePrice}</strong></p>
       ${
         joinLink
           ? `<p><a href="${joinLink}" style="display:inline-block;padding:10px 20px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;">انضم عبر واتساب</a></p>`
@@ -69,17 +76,30 @@ export async function GET(request: Request) {
     const stages = dueStages({ startsAt: course.startsAt, now, alreadySent });
 
     for (const stage of stages) {
+      // Claimed before sending, not after: the unique index on
+      // [courseId, stage] means only one concurrent request can ever win this
+      // insert. Two overlapping triggers of this route (the schedule firing
+      // at the same moment as a manual check, say) both pass the dueStages
+      // check above from the same starting state, but only the winner here
+      // actually emails anyone — the loser sees its own insert rejected and
+      // moves on, rather than sending a duplicate and then crashing on a
+      // reminder row that already exists.
+      try {
+        await prisma.courseReminder.create({ data: { courseId: course.id, stage } });
+      } catch (error) {
+        const code = (error as { code?: string } | null)?.code;
+        if (code === 'P2002') {
+          results.push({ courseId: course.id, stage, sent: false, reason: 'already claimed by a concurrent run' });
+          continue;
+        }
+        throw error;
+      }
+
       const outcome = await sendAnnouncementEmail({
         recipients: allEmails,
         subject: `دورة "${course.name}" — ${STAGE_LABEL_AR[stage]}`,
         html: emailHtml(course.name, course.price, stage, course.whatsappNumber),
       });
-
-      // Recorded as sent even if the actual email failed (e.g. SMTP not
-      // configured yet): without this, a persistently failing send would be
-      // retried every 15 minutes forever rather than being visible once and
-      // then left for the admin to notice and fix.
-      await prisma.courseReminder.create({ data: { courseId: course.id, stage } });
 
       // The reason is included right here, not just logged, so a failure can
       // be diagnosed by opening this URL in a browser — no Vercel Logs needed.
